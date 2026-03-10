@@ -109,6 +109,24 @@ export const employeeApi = {
 export const regionApi = {
     getRegions: async () => {
         return fetchWithCredentials('/regions', { method: 'GET' });
+    },
+    getRegionById: async (id: string) => {
+        return fetchWithCredentials(`/regions/${id}`, { method: 'GET' });
+    },
+    createRegion: async (data: any) => {
+        return fetchWithCredentials('/regions', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateRegion: async (id: string, data: any) => {
+        return fetchWithCredentials(`/regions/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteRegion: async (id: string) => {
+        return fetchWithCredentials(`/regions/${id}`, { method: 'DELETE' });
     }
 };
 

@@ -55,8 +55,17 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             }
 
             if (initialValues) {
+                // If the employee is TRUONG_KHU_VUC and has employeeRegions, map them into an array for the multiselect
+                let defaultRegionCode = initialValues.regionCode;
+                if (currentRoleCode === 'TRUONG_KHU_VUC' && initialValues.employeeRegions) {
+                    defaultRegionCode = initialValues.employeeRegions.map((er: any) => er.regionCode);
+                } else if (initialValues.employeeRegions && initialValues.employeeRegions.length > 0) {
+                    defaultRegionCode = initialValues.employeeRegions[0].regionCode;
+                }
+
                 const formattedValues = {
                     ...initialValues,
+                    regionCode: defaultRegionCode,
                     dob: initialValues.dob ? dayjs(initialValues.dob) : null,
                     joinDate: initialValues.joinDate ? dayjs(initialValues.joinDate) : null,
                 };
@@ -157,8 +166,12 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
 
                 <Row gutter={16}>
                     <Col span={12}>
-                        <Form.Item name="regionCode" label="Khu vực" rules={[{ required: true, message: 'Vui lòng chọn Khu vực!' }]}>
-                            <Select placeholder="Chọn mã khu vực">
+                        <Form.Item name="regionCode" label="Quản lý khu vực" rules={[{ required: true, message: 'Vui lòng chọn Khu vực!' }]}>
+                            <Select
+                                placeholder="Chọn mã khu vực"
+                                mode={currentRoleCode === 'TRUONG_KHU_VUC' ? 'multiple' : undefined}
+                                allowClear
+                            >
                                 {regions.map((r: any) => (
                                     <Select.Option key={r.code || r.id} value={r.code || r.id}>
                                         {r.code || r.id}

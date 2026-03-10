@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, message, Popconfirm, Tag } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Typography, Button, Table, Space, message, Popconfirm, Tag, Avatar, ConfigProvider } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useSearchParams } from 'next/navigation';
@@ -21,6 +21,9 @@ export default function EmployeePage() {
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<any>(null);
+
+    // Selection state
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
     const fetchEmployees = async () => {
         try {
@@ -58,6 +61,25 @@ export default function EmployeePage() {
         }
     };
 
+    const handleBulkDelete = async () => {
+        if (selectedRowKeys.length === 0) return;
+        try {
+            setLoading(true);
+            await Promise.all(selectedRowKeys.map((id) => employeeApi.deleteEmployee(id.toString())));
+            message.success(`Đã xóa thành công ${selectedRowKeys.length} nhân viên`);
+            setSelectedRowKeys([]);
+            fetchEmployees();
+        } catch (error: any) {
+            message.error(error.message || 'Lỗi khi xóa hàng loạt nhân viên');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+        setSelectedRowKeys(newSelectedRowKeys);
+    };
+
     const handleModalSubmit = async (values: any) => {
         try {
             if (editingEmployee) {
@@ -69,14 +91,11 @@ export default function EmployeePage() {
             }
             fetchEmployees();
         } catch (error: any) {
-            throw error; // Let modal handle error display
+            throw error;
         }
     };
 
     const columns: ColumnsType<any> = [
-        {
-
-        },
         {
             title: 'STT',
             dataIndex: 'stt',
@@ -91,43 +110,24 @@ export default function EmployeePage() {
             width: 100,
         },
         {
+            title: 'Hình ảnh',
+            dataIndex: 'avatar',
+            key: 'avatar',
+            render: () => <Avatar icon={<UserOutlined />} src="https://api.dicebear.com/7.x/miniavs/svg?seed=1" />
+        },
+        {
             title: 'Họ tên',
             dataIndex: 'fullName',
             key: 'fullName',
         },
         {
-            title: 'Email',
-            dataIndex: 'email',
-            key: 'email',
-        },
-        {
-            title: 'SĐT',
-            dataIndex: 'phone',
-            key: 'phone',
-        },
-        {
-            title: 'Trưởng khu vực',
-            dataIndex: 'areaManager',
-            key: 'areaManager',
-            render: (areaManager: any) => areaManager?.fullName || '-',
-        },
-        {
-            title: 'Trưởng phòng CC',
-            dataIndex: 'seniorDeptManager',
-            key: 'seniorDeptManager',
-            render: (manager: any) => manager?.fullName || '-',
-        },
-        {
-            title: 'Trưởng phòng',
-            dataIndex: 'deptManager',
-            key: 'deptManager',
-            render: (manager: any) => manager?.fullName || '-',
-        },
-        {
-            title: 'Quản lý',
-            dataIndex: 'manager',
-            key: 'manager',
-            render: (manager: any) => manager?.fullName || '-',
+            title: 'Quản lý khu vực',
+            dataIndex: 'employeeRegions',
+            key: 'employeeRegions',
+            render: (employeeRegions: any[]) => {
+                if (!employeeRegions || employeeRegions.length === 0) return '-';
+                return employeeRegions.map(er => er.region?.code || er.regionCode).join(' | ');
+            }
         },
         {
             title: 'Trạng thái',
@@ -176,24 +176,60 @@ export default function EmployeePage() {
                 <Title level={4} style={{ margin: 0 }}>
                     Danh sách nhân sự
                 </Title>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleCreateClick}
-                    style={{ background: '#d32f2f', borderColor: '#d32f2f' }}
-                >
-                    Thêm nhân viên
-                </Button>
+                <Space>
+                    {selectedRowKeys.length > 0 && (
+                        <Popconfirm
+                            title={`Xóa ${selectedRowKeys.length} nhân viên`}
+                            description="Bạn có chắc chắn muốn xóa những nhân viên đã chọn?"
+                            onConfirm={handleBulkDelete}
+                            okText="Có"
+                            cancelText="Không"
+                        >
+                            <Button danger type="primary" icon={<DeleteOutlined />}>
+                                Xóa đã chọn ({selectedRowKeys.length})
+                            </Button>
+                        </Popconfirm>
+                    )}
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleCreateClick}
+                        style={{ background: '#d32f2f', borderColor: '#d32f2f' }}
+                    >
+                        Thêm nhân viên
+                    </Button>
+                </Space>
             </div>
 
-            <Table
-                columns={columns}
-                dataSource={employees}
-                rowKey="id"
-                loading={loading}
-                scroll={{ x: 1200 }}
-                pagination={{ pageSize: 10 }}
-            />
+            <ConfigProvider
+                theme={{
+                    components: {
+                        Table: {
+                            headerBg: '#f3db55', // Màu vàng nền tiêu đề giống thiết kế
+                            headerColor: '#000000', // Màu chữ đen
+                            headerBorderRadius: 8, // Bo góc tiêu đề
+                        },
+                        Checkbox: {
+                            colorPrimary: '#f3db55',    // Màu nền vàng khi check
+                            colorPrimaryHover: '#fce254', // Màu khi hover
+                            colorWhite: '#000000',      // Màu dấu tick đen (override class dấu check)
+                        }
+                    },
+                }}
+            >
+                <Table
+                    rowSelection={{
+                        selectedRowKeys,
+                        onChange: onSelectChange,
+                    }}
+                    columns={columns}
+                    dataSource={employees}
+                    rowKey="id"
+                    loading={loading}
+                    scroll={{ x: 1200 }}
+                    pagination={{ pageSize: 10 }}
+                />
+            </ConfigProvider>
 
             <EmployeeModal
                 open={isModalOpen}

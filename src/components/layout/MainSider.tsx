@@ -19,6 +19,7 @@ const items: MenuProps['items'] = [
         icon: <DashboardOutlined />,
         label: 'Quản lý kế toán',
         children: [
+            { key: 'area_list', label: 'Danh sách khu vực' },
             { key: 'area_manager', label: 'Trưởng khu vực' },
             { key: 'senior_manager', label: 'Trưởng phòng cấp cao' },
             { key: 'department_manager', label: 'Trưởng phòng' },
@@ -75,6 +76,8 @@ export default function MainSider() {
     const onMenuClick: MenuProps['onClick'] = (e) => {
         if (e.key === 'dashboard') {
             router.push('/');
+        } else if (e.key === 'area_list') {
+            router.push('/accounting/region');
         } else if (e.key === 'area_manager') {
             router.push('/accounting/employee?roleCode=TRUONG_KHU_VUC');
         } else if (e.key === 'senior_manager') {
