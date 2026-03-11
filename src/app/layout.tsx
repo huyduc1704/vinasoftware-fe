@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AntdRegistry } from '@ant-design/nextjs-registry';
+import { App as AntdApp } from 'antd';
 import LenisProvider from '@/components/providers/LenisProvider';
 import MainLayout from '@/components/layout/MainLayout';
 import "./globals.css"; const geistSans = Geist({
@@ -27,9 +28,11 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
         <AntdRegistry>
-          <LenisProvider>
-            <MainLayout>{children}</MainLayout>
-          </LenisProvider>
+          <AntdApp>
+            <LenisProvider>
+              <MainLayout>{children}</MainLayout>
+            </LenisProvider>
+          </AntdApp>
         </AntdRegistry>
       </body>
     </html>

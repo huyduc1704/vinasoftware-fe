@@ -25,54 +25,75 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
 
     useEffect(() => {
         if (open) {
-            // Fetch Dropdowns
-            regionApi.getRegions().then(data => {
-                if (Array.isArray(data)) {
-                    setRegions(data);
-                } else if (data && Array.isArray(data.data)) {
-                    setRegions(data.data);
-                } else if (data && Array.isArray(data.items)) {
-                    setRegions(data.items);
-                } else {
-                    setRegions([]);
-                }
-            }).catch((err) => {
-                console.error("Could not load regions", err);
-                setRegions([]);
-            });
+            const parseEmployees = (data: any): any[] => {
+                if (Array.isArray(data)) return data;
+                if (data && Array.isArray(data.data)) return data.data;
+                if (data && Array.isArray(data.items)) return data.items;
+                return [];
+            };
+
+            // Build all fetch promises
+            const fetchPromises: Promise<void>[] = [];
+
+            fetchPromises.push(
+                regionApi.getRegions().then(data => {
+                    if (Array.isArray(data)) setRegions(data);
+                    else if (data && Array.isArray(data.data)) setRegions(data.data);
+                    else if (data && Array.isArray(data.items)) setRegions(data.items);
+                    else setRegions([]);
+                }).catch(() => setRegions([]))
+            );
 
             if (['TRUONG_PHONG_CAP_CAO', 'TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH'].includes(currentRoleCode || '')) {
-                employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC' }).then(setAreaManagers).catch(() => { });
+                fetchPromises.push(
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC' })
+                        .then(data => setAreaManagers(parseEmployees(data)))
+                        .catch(() => { })
+                );
             }
             if (['TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH'].includes(currentRoleCode || '')) {
-                employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO' }).then(setSeniorManagers).catch(() => { });
+                fetchPromises.push(
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO' })
+                        .then(data => setSeniorManagers(parseEmployees(data)))
+                        .catch(() => { })
+                );
             }
             if (['QUAN_LY', 'NHAN_VIEN_KINH_DOANH'].includes(currentRoleCode || '')) {
-                employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG' }).then(setDeptManagers).catch(() => { });
+                fetchPromises.push(
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG' })
+                        .then(data => setDeptManagers(parseEmployees(data)))
+                        .catch(() => { })
+                );
             }
             if (['NHAN_VIEN_KINH_DOANH'].includes(currentRoleCode || '')) {
-                employeeApi.getEmployees({ roleCode: 'QUAN_LY' }).then(setManagers).catch(() => { });
+                fetchPromises.push(
+                    employeeApi.getEmployees({ roleCode: 'QUAN_LY' })
+                        .then(data => setManagers(parseEmployees(data)))
+                        .catch(() => { })
+                );
             }
 
-            if (initialValues) {
-                // If the employee is TRUONG_KHU_VUC and has employeeRegions, map them into an array for the multiselect
-                let defaultRegionCode = initialValues.regionCode;
-                if (currentRoleCode === 'TRUONG_KHU_VUC' && initialValues.employeeRegions) {
-                    defaultRegionCode = initialValues.employeeRegions.map((er: any) => er.regionCode);
-                } else if (initialValues.employeeRegions && initialValues.employeeRegions.length > 0) {
-                    defaultRegionCode = initialValues.employeeRegions[0].regionCode;
+            // Wait for ALL dropdowns to load, THEN set form values
+            // This prevents the race condition where UUID is shown before options are ready
+            Promise.all(fetchPromises).then(() => {
+                if (initialValues) {
+                    let defaultRegionCode = initialValues.regionCode;
+                    if (currentRoleCode === 'TRUONG_KHU_VUC' && initialValues.employeeRegions) {
+                        defaultRegionCode = initialValues.employeeRegions.map((er: any) => er.regionCode);
+                    } else if (initialValues.employeeRegions && initialValues.employeeRegions.length > 0) {
+                        defaultRegionCode = initialValues.employeeRegions[0].regionCode;
+                    }
+
+                    form.setFieldsValue({
+                        ...initialValues,
+                        regionCode: defaultRegionCode,
+                        dob: initialValues.dob ? dayjs(initialValues.dob) : null,
+                        joinDate: initialValues.joinDate ? dayjs(initialValues.joinDate) : null,
+                    });
+                } else {
+                    form.resetFields();
                 }
-
-                const formattedValues = {
-                    ...initialValues,
-                    regionCode: defaultRegionCode,
-                    dob: initialValues.dob ? dayjs(initialValues.dob) : null,
-                    joinDate: initialValues.joinDate ? dayjs(initialValues.joinDate) : null,
-                };
-                form.setFieldsValue(formattedValues);
-            } else {
-                form.resetFields();
-            }
+            });
         } else {
             // Reset dropdowns on close
             setAreaManagers([]);
@@ -81,6 +102,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             setManagers([]);
         }
     }, [open, initialValues, form, currentRoleCode]);
+
 
     const handleOk = async () => {
         try {

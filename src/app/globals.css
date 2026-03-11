@@ -40,3 +40,36 @@ a {
     color-scheme: dark;
   }
 }
+
+/* Hide number input spin buttons */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* Active card tab: red top border + red text */
+.contract-tabs .ant-tabs-tab.ant-tabs-tab-active {
+  border-top: 2px solid #ff4d4f !important;
+  border-left: 1px solid #ff4d4f !important;
+  border-right: 1px solid #ff4d4f !important;
+}
+
+.contract-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: #ff4d4f !important;
+  font-weight: 600;
+}
+
+/* Responsive header on mobile (<744px) */
+@media (max-width: 744px) {
+  .form-header-bar {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+}

@@ -130,3 +130,51 @@ export const regionApi = {
     }
 };
 
+export const customerApi = {
+    getCustomers: async () => {
+        return fetchWithCredentials('/customers', { method: 'GET' });
+    },
+    getCustomerById: async (id: string) => {
+        return fetchWithCredentials(`/customers/${id}`, { method: 'GET' });
+    },
+    createCustomer: async (data: any) => {
+        return fetchWithCredentials('/customers', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateCustomer: async (id: string, data: any) => {
+        return fetchWithCredentials(`/customers/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteCustomer: async (id: string) => {
+        return fetchWithCredentials(`/customers/${id}`, { method: 'DELETE' });
+    }
+};
+
+export const contractApi = {
+    getContracts: async () => {
+        return fetchWithCredentials('/contracts', { method: 'GET' });
+    },
+    getContractById: async (id: string) => {
+        return fetchWithCredentials(`/contracts/${id}`, { method: 'GET' });
+    },
+    createContract: async (data: any) => {
+        return fetchWithCredentials('/contracts', {
+            method: 'POST',
+            body: JSON.stringify(data),
+        });
+    },
+    updateContract: async (id: string, data: any) => {
+        return fetchWithCredentials(`/contracts/${id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data),
+        });
+    },
+    deleteContract: async (id: string) => {
+        return fetchWithCredentials(`/contracts/${id}`, { method: 'DELETE' });
+    }
+};
+

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Layout, Menu, theme, ConfigProvider } from 'antd';
-import { DashboardOutlined, ControlOutlined, SettingOutlined, FileImageOutlined, EditOutlined } from '@ant-design/icons';
+import { DashboardOutlined, ControlOutlined, SettingOutlined, FileImageOutlined, EditOutlined, UserOutlined, CustomerServiceOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useRouter } from 'next/navigation';
 
@@ -33,6 +33,14 @@ const items: MenuProps['items'] = [
         ],
     },
     {
+        key: 'customers',
+        icon: <CustomerServiceOutlined />,
+        label: 'Quản lý CSKH',
+        children: [
+            { key: 'customer_list', label: 'Khách hàng' }
+        ]
+    },
+    {
         key: 'static_page_manager',
         icon: <EditOutlined />,
         label: 'Quản lý trang tĩnh',
@@ -51,7 +59,7 @@ const items: MenuProps['items'] = [
     },
     {
         key: 'user_manager',
-        icon: <DashboardOutlined />,
+        icon: <UserOutlined />,
         label: 'Quản lý user',
         children: [
             { key: 'permission_group', label: 'Nhóm quyền' },
@@ -74,21 +82,36 @@ export default function MainSider() {
     } = theme.useToken();
 
     const onMenuClick: MenuProps['onClick'] = (e) => {
+        const navigateToEmployee = (roleCode: string | null) => {
+            if (roleCode) {
+                sessionStorage.setItem('employeeRoleCode', roleCode);
+            } else {
+                sessionStorage.removeItem('employeeRoleCode');
+            }
+            window.dispatchEvent(new Event('employeeRoleChanged'));
+            router.push('/accounting/employee');
+        };
+
         if (e.key === 'dashboard') {
             router.push('/');
         } else if (e.key === 'area_list') {
             router.push('/accounting/region');
         } else if (e.key === 'area_manager') {
-            router.push('/accounting/employee?roleCode=TRUONG_KHU_VUC');
+            navigateToEmployee('TRUONG_KHU_VUC');
         } else if (e.key === 'senior_manager') {
-            router.push('/accounting/employee?roleCode=TRUONG_PHONG_CAP_CAO');
+            navigateToEmployee('TRUONG_PHONG_CAP_CAO');
         } else if (e.key === 'department_manager') {
-            router.push('/accounting/employee?roleCode=TRUONG_PHONG');
+            navigateToEmployee('TRUONG_PHONG');
         } else if (e.key === 'management') {
-            router.push('/accounting/employee?roleCode=QUAN_LY');
+            navigateToEmployee('QUAN_LY');
         } else if (e.key === 'employee') {
-            router.push('/accounting/employee?roleCode=NHAN_VIEN_KINH_DOANH');
+            navigateToEmployee(null);
+        } else if (e.key === 'customer_list') {
+            router.push('/customers');
+        } else if (e.key === 'accountant') {
+            router.push('/accounting/contracts');
         }
+
     };
 
     return (

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, message, Popconfirm, Tag } from 'antd';
+import { Typography, Button, Table, Space, message, Popconfirm, Tag, ConfigProvider } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import RegionModal from '@/components/accounting/region/RegionModal';
@@ -16,6 +16,9 @@ export default function RegionPage() {
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingRegion, setEditingRegion] = useState<any>(null);
+
+    // Selection state
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
     const fetchRegions = async () => {
         try {
@@ -60,6 +63,25 @@ export default function RegionPage() {
         } catch (error: any) {
             message.error(error.message || 'Lỗi khi xóa khu vực');
         }
+    };
+
+    const handleBulkDelete = async () => {
+        if (selectedRowKeys.length === 0) return;
+        try {
+            setLoading(true);
+            await Promise.all(selectedRowKeys.map((id) => regionApi.deleteRegion(id.toString())));
+            message.success(`Đã xóa thành công ${selectedRowKeys.length} khu vực`);
+            setSelectedRowKeys([]);
+            fetchRegions();
+        } catch (error: any) {
+            message.error(error.message || 'Lỗi khi xóa hàng loạt khu vực');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
+        setSelectedRowKeys(newSelectedRowKeys);
     };
 
     const handleModalSubmit = async (values: any) => {
@@ -145,24 +167,60 @@ export default function RegionPage() {
                 <Title level={4} style={{ margin: 0 }}>
                     Danh sách khu vực
                 </Title>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={handleCreateClick}
-                    style={{ background: '#d32f2f', borderColor: '#d32f2f' }}
-                >
-                    Thêm khu vực mới
-                </Button>
+                <Space>
+                    {selectedRowKeys.length > 0 && (
+                        <Popconfirm
+                            title={`Xóa ${selectedRowKeys.length} khu vực`}
+                            description="Bạn có chắc chắn muốn xóa những khu vực đã chọn?"
+                            onConfirm={handleBulkDelete}
+                            okText="Có"
+                            cancelText="Không"
+                        >
+                            <Button danger type="primary" icon={<DeleteOutlined />}>
+                                Xóa đã chọn ({selectedRowKeys.length})
+                            </Button>
+                        </Popconfirm>
+                    )}
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={handleCreateClick}
+                        style={{ background: '#d32f2f', borderColor: '#d32f2f' }}
+                    >
+                        Thêm khu vực mới
+                    </Button>
+                </Space>
             </div>
 
-            <Table
-                columns={columns}
-                dataSource={regions}
-                rowKey="id"
-                loading={loading}
-                scroll={{ x: 800 }}
-                pagination={{ pageSize: 15 }}
-            />
+            <ConfigProvider
+                theme={{
+                    components: {
+                        Table: {
+                            headerBg: '#f3db55', // Màu vàng nền tiêu đề giống thiết kế
+                            headerColor: '#000000', // Màu chữ đen
+                            headerBorderRadius: 8, // Bo góc tiêu đề
+                        },
+                        Checkbox: {
+                            colorPrimary: '#f3db55',    // Màu nền vàng khi check
+                            colorPrimaryHover: '#fce254', // Màu khi hover
+                            colorWhite: '#000000',      // Màu dấu tick đen (override class dấu check)
+                        }
+                    },
+                }}
+            >
+                <Table
+                    rowSelection={{
+                        selectedRowKeys,
+                        onChange: onSelectChange,
+                    }}
+                    columns={columns}
+                    dataSource={regions}
+                    rowKey="id"
+                    loading={loading}
+                    scroll={{ x: 800 }}
+                    pagination={{ pageSize: 15 }}
+                />
+            </ConfigProvider>
 
             <RegionModal
                 open={isModalOpen}

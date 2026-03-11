@@ -12,8 +12,7 @@ import { employeeApi } from '@/utils/api';
 const { Title } = Typography;
 
 export default function EmployeePage() {
-    const searchParams = useSearchParams();
-    const currentRoleCode = searchParams?.get('roleCode') || undefined;
+    const [currentRoleCode, setCurrentRoleCode] = useState<string | undefined>(undefined);
 
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -25,21 +24,43 @@ export default function EmployeePage() {
     // Selection state
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
+    const STAFF_ROLES = 'NHAN_VIEN_KINH_DOANH,TRUONG_PHONG_CAP_CAO,TRUONG_PHONG,QUAN_LY';
+
     const fetchEmployees = async () => {
+        setLoading(true);
         try {
-            setLoading(true);
-            const data = await employeeApi.getEmployees({ roleCode: currentRoleCode });
+            // Nếu không có roleCode (tab Nhân viên) → gọi với 4 role gộp
+            // Nếu có roleCode cụ thể (Trưởng khu vực, etc.) → filter theo role đó
+            const roleCode = currentRoleCode || STAFF_ROLES;
+            const data = await employeeApi.getEmployees({ roleCode });
             setEmployees(data || []);
         } catch (error: any) {
-            message.error(error.message || 'Lỗi tải danh sách nhân viên');
+            message.error(error.message || 'Không thể tải danh sách nhân viên');
         } finally {
             setLoading(false);
         }
     };
 
+    // Read roleCode from sessionStorage (set by sidebar navigation)
+    useEffect(() => {
+        const stored = sessionStorage.getItem('employeeRoleCode');
+        setCurrentRoleCode(stored || undefined);
+    }, []);
+
+    // Re-fetch when currentRoleCode changes
     useEffect(() => {
         fetchEmployees();
     }, [currentRoleCode]);
+
+    // Listen for custom event dispatched from same-tab sidebar navigation
+    useEffect(() => {
+        const handleRoleChange = () => {
+            const stored = sessionStorage.getItem('employeeRoleCode');
+            setCurrentRoleCode(stored || undefined);
+        };
+        window.addEventListener('employeeRoleChanged', handleRoleChange);
+        return () => window.removeEventListener('employeeRoleChanged', handleRoleChange);
+    }, []);
 
     const handleCreateClick = () => {
         setEditingEmployee(null);
@@ -121,7 +142,7 @@ export default function EmployeePage() {
             key: 'fullName',
         },
         {
-            title: 'Quản lý khu vực',
+            title: currentRoleCode === 'TRUONG_KHU_VUC' ? 'Quản lý khu vực' : 'Khu vực làm việc',
             dataIndex: 'employeeRegions',
             key: 'employeeRegions',
             render: (employeeRegions: any[]) => {
@@ -237,7 +258,7 @@ export default function EmployeePage() {
                 initialValues={editingEmployee}
                 onCancel={() => setIsModalOpen(false)}
                 onOk={handleModalSubmit}
-                currentRoleCode={currentRoleCode}
+                currentRoleCode={editingEmployee?.roleCode ?? currentRoleCode}
             />
         </div>
     );
