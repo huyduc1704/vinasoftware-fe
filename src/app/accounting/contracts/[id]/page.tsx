@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Form, Input, Select, Button, DatePicker, Row, Col, Tabs, Typography, Switch, message, ConfigProvider, Space, InputNumber, Spin } from 'antd';
 import { useRouter, useParams } from 'next/navigation';
-import { contractApi, customerApi } from '@/utils/api';
+import { contractApi, customerApi, employeeApi } from '@/utils/api';
 import dayjs from 'dayjs';
 
 const { Text } = Typography;
@@ -22,6 +22,45 @@ export default function ContractDetailPage() {
     // Store formatted values to apply to form AFTER it mounts
     const [formValues, setFormValues] = useState<any>(null);
 
+    // Employee lists for dropdowns
+    const [managers, setManagers] = useState({
+        area: [] as any[],
+        senior: [] as any[],
+        dept: [] as any[],
+        mgmt: [] as any[],
+        staff: [] as any[]
+    });
+
+    // Fetch employee lists by role
+    useEffect(() => {
+        const fetchAllRoles = async () => {
+            try {
+                const [area, senior, dept, mgmt, staff] = await Promise.all([
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC' }),
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO' }),
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG' }),
+                    employeeApi.getEmployees({ roleCode: 'QUAN_LY' }),
+                    employeeApi.getEmployees({ roleCode: 'NHAN_VIEN_KINH_DOANH' })
+                ]);
+                const getData = (res: any) => {
+                    if (Array.isArray(res)) return res;
+                    if (res && Array.isArray(res.data)) return res.data;
+                    if (res && Array.isArray(res.items)) return res.items;
+                    return [];
+                };
+                setManagers({
+                    area: getData(area),
+                    senior: getData(senior),
+                    dept: getData(dept),
+                    mgmt: getData(mgmt),
+                    staff: getData(staff)
+                });
+            } catch (error) {
+                console.error('Failed to fetch employee lists:', error);
+            }
+        };
+        fetchAllRoles();
+    }, []);
     useEffect(() => {
         if (!id) return;
         const loadContract = async () => {
@@ -44,6 +83,10 @@ export default function ContractDetailPage() {
                         displayEmpCode: emp?.employeeCode || '',
                         displayEmpName: emp?.fullName || '',
                         employeeId: mainEmployee?.employeeId || '',
+                        // Map manager IDs to form fields
+                        topRegionManager: data.managerId || '',
+                        topSeniorManager: data.seniorDeptManagerId || '',
+                        topDeptManager: data.deptManagerId || '',
                         displayRegion: data.regionCode || '',
                         serviceDetails: {
                             ...sd,
@@ -173,9 +216,9 @@ export default function ContractDetailPage() {
                 paymentStages: values.paymentStages,
                 customerId: values.customerId,
                 regionCode: values.regionCode,
-                managerId: values.managerId,
-                deptManagerId: values.deptManagerId,
-                seniorDeptManagerId: values.seniorDeptManagerId,
+                managerId: values.topRegionManager,
+                deptManagerId: values.topDeptManager,
+                seniorDeptManagerId: values.topSeniorManager,
                 employees: values.employeeId ? [{ employeeId: values.employeeId, isMain: true }] : [],
             };
 
@@ -497,11 +540,43 @@ export default function ContractDetailPage() {
 
                 <div style={{ background: '#fff', padding: '20px 24px 0 24px', borderRadius: '8px 8px 0 0', marginTop: '16px' }}>
                     <Row gutter={16}>
-                        <Col xs={24} md={12} xl={4}><Form.Item label="Trưởng khu vực" name="topRegionManager" labelCol={{ span: 24 }}><Select placeholder="-- Chọn danh mục --" /></Form.Item></Col>
-                        <Col xs={24} md={12} xl={5}><Form.Item label="Trưởng phòng cấp cao" name="topSeniorManager" labelCol={{ span: 24 }}><Select placeholder="-- Chọn danh mục --" /></Form.Item></Col>
-                        <Col xs={24} md={12} xl={5}><Form.Item label="Trưởng phòng" name="topDeptManager" labelCol={{ span: 24 }}><Select placeholder="-- Chọn danh mục --" /></Form.Item></Col>
-                        <Col xs={24} md={12} xl={5}><Form.Item label="PP kinh doanh" name="topMgmt" labelCol={{ span: 24 }}><Select placeholder="-- Chọn danh mục --" /></Form.Item></Col>
-                        <Col xs={24} md={12} xl={5}><Form.Item label="Nhân viên" name="employeeId" labelCol={{ span: 24 }}><Select placeholder="-- Chọn danh mục --"><Option value="emp-1">NV Nguyễn Văn A</Option></Select></Form.Item></Col>
+                        <Col xs={24} md={12} xl={4}>
+                            <Form.Item label="Trưởng khu vực" name="topRegionManager" labelCol={{ span: 24 }}>
+                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
+                                    {managers.area.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12} xl={5}>
+                            <Form.Item label="Trưởng phòng cấp cao" name="topSeniorManager" labelCol={{ span: 24 }}>
+                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
+                                    {managers.senior.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12} xl={5}>
+                            <Form.Item label="Trưởng phòng" name="topDeptManager" labelCol={{ span: 24 }}>
+                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
+                                    {managers.dept.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12} xl={5}>
+                            <Form.Item label="PP kinh doanh" name="topMgmt" labelCol={{ span: 24 }}>
+                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
+                                    {managers.mgmt.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                        <Col xs={24} md={12} xl={5}>
+                            <Form.Item label="Nhân viên" name="employeeId" labelCol={{ span: 24 }}>
+                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
+                                    {[...managers.staff, ...managers.mgmt, ...managers.dept, ...managers.senior].map(m => (
+                                        <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
                     </Row>
                 </div>
 
