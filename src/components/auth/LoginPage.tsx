@@ -19,13 +19,34 @@ export default function LoginPage() {
             setLoading(true);
             setErrorMsg('');
             await authApi.login({ username: values.username, password: values.password });
-            router.push('/');
+
+            // Check for returnUrl in search params
+            const searchParams = new URLSearchParams(window.location.search);
+            const returnUrl = searchParams.get('returnUrl');
+            router.push(returnUrl || '/');
         } catch (err: any) {
             setErrorMsg(err.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
         } finally {
             setLoading(false);
         }
     };
+
+    // Check if user is already authenticated
+    React.useEffect(() => {
+        const checkExistingAuth = async () => {
+            try {
+                await authApi.getMe();
+                const searchParams = new URLSearchParams(window.location.search);
+                const returnUrl = searchParams.get('returnUrl');
+                router.push(returnUrl || '/');
+            } catch (err) {
+                // Not authenticated, stay on login page
+            }
+        };
+        checkExistingAuth();
+    }, [router]);
+
+
 
     return (
         <div style={{ display: 'flex', height: '100vh', width: '100vw', background: '#262626', overflow: 'hidden' }}>

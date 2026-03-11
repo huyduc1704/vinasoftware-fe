@@ -38,8 +38,8 @@ export default function MainHeader() {
         if (headerRef.current) {
             gsap.fromTo(
                 headerRef.current,
-                { y: -20, opacity: 0 },
-                { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' }
+                { opacity: 0 },
+                { opacity: 1, duration: 0.6, ease: 'power2.out' }
             );
         }
     }, []);

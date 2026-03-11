@@ -468,7 +468,7 @@ export default function ContractDetailPage() {
     if (pageLoading) {
         return (
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-                <Spin size="large" tip="Đang tải thông tin hợp đồng..." />
+                <Spin size="large" description="Đang tải thông tin hợp đồng..." />
             </div>
         );
     }

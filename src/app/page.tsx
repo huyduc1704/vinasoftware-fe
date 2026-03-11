@@ -81,8 +81,8 @@ export default function Home() {
     if (contentRef.current) {
       gsap.fromTo(
         contentRef.current.children,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, duration: 0.6, stagger: 0.1, ease: 'power2.out' }
+        { opacity: 0 },
+        { opacity: 1, duration: 0.6, stagger: 0.1, ease: 'power2.out' }
       );
     }
   }, []);
