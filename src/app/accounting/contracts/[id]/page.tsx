@@ -378,18 +378,26 @@ export default function ContractDetailPage() {
         <div style={{ padding: '24px', background: '#fff' }}>
             <SectionTitle title="QUẢNG CÁO ADS" />
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}><Input /></Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}><Input /></Form.Item></Col>
+                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
+                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                </Form.Item></Col>
+                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
+                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                </Form.Item></Col>
                 <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
                     <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
                 </Form.Item></Col>
             </Row>
             <SectionTitle title="QUẢNG CÁO FACEBOOK" />
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}><Input /></Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}><Input /></Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
+                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
                     <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                </Form.Item></Col>
+                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
+                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                </Form.Item></Col>
+                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
+                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(value) => value?.replace(/[^\d]/g, '') as any} />
                 </Form.Item></Col>
             </Row>
         </div>
