@@ -1,18 +1,26 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, message, Popconfirm, Tag, Avatar, ConfigProvider } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined } from '@ant-design/icons';
+import { Typography, Button, Table, Space, Popconfirm, Tag, Avatar, ConfigProvider, Input, Tooltip, Select, Row, Col, App } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useSearchParams } from 'next/navigation';
 import EmployeeModal from '@/components/accounting/employee/EmployeeModal';
+import EmployeeDetailModal from '@/components/accounting/employee/EmployeeDetailModal';
 import { employeeApi } from '@/utils/api';
 
 const { Title } = Typography;
 
 export default function EmployeePage() {
-    const [currentRoleCode, setCurrentRoleCode] = useState<string | undefined>(undefined);
+    const { message } = App.useApp();
+
+    const [currentRoleCode, setCurrentRoleCode] = useState<string | undefined>(() => {
+        if (typeof window !== 'undefined') {
+            return sessionStorage.getItem('employeeRoleCode') || undefined;
+        }
+        return undefined;
+    });
 
     const [employees, setEmployees] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -21,19 +29,51 @@ export default function EmployeePage() {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<any>(null);
 
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [viewingEmployee, setViewingEmployee] = useState<any>(null);
+
+    // Pagination & Search state
+    const [page, setPage] = useState(1);
+    const [limit, setLimit] = useState(10);
+    const [total, setTotal] = useState(0);
+    const [searchText, setSearchText] = useState('');
+    const [search, setSearch] = useState('');
+
+    // Filter properties
+    const [areaManagersList, setAreaManagersList] = useState<any[]>([]);
+    const [seniorDeptManagersList, setSeniorDeptManagersList] = useState<any[]>([]);
+    const [deptManagersList, setDeptManagersList] = useState<any[]>([]);
+    const [managersList, setManagersList] = useState<any[]>([]);
+
+    const [selectedAreaManager, setSelectedAreaManager] = useState<string | undefined>(undefined);
+    const [selectedSeniorDeptManager, setSelectedSeniorDeptManager] = useState<string | undefined>(undefined);
+    const [selectedDeptManager, setSelectedDeptManager] = useState<string | undefined>(undefined);
+    const [selectedManager, setSelectedManager] = useState<string | undefined>(undefined);
+
+    const [filteredManagers, setFilteredManagers] = useState(areaManagersList);
     // Selection state
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
-    const STAFF_ROLES = 'NHAN_VIEN_KINH_DOANH,TRUONG_PHONG_CAP_CAO,TRUONG_PHONG,QUAN_LY';
+    const STAFF_ROLES = 'NVKD,TRUONG_PHONG_CAP_CAO,TRUONG_PHONG,QUAN_LY';
 
     const fetchEmployees = async () => {
         setLoading(true);
         try {
-            // Nếu không có roleCode (tab Nhân viên) → gọi với 4 role gộp
-            // Nếu có roleCode cụ thể (Trưởng khu vực, etc.) → filter theo role đó
             const roleCode = currentRoleCode || STAFF_ROLES;
-            const data = await employeeApi.getEmployees({ roleCode });
-            setEmployees(data || []);
+            const response = await employeeApi.getEmployees({
+                roleCode, page, limit, search,
+                areaManagerId: selectedAreaManager,
+                seniorDeptManagerId: selectedSeniorDeptManager,
+                deptManagerId: selectedDeptManager,
+                managerId: selectedManager
+            });
+            if (response && response.data && response.meta) {
+                setEmployees(response.data);
+                setTotal(response.meta.total);
+            } else {
+                setEmployees(response || []);
+                setTotal(response?.length || 0);
+            }
         } catch (error: any) {
             message.error(error.message || 'Không thể tải danh sách nhân viên');
         } finally {
@@ -41,18 +81,70 @@ export default function EmployeePage() {
         }
     };
 
-    // Read roleCode from sessionStorage (set by sidebar navigation)
+    // Debounce search
     useEffect(() => {
-        const stored = sessionStorage.getItem('employeeRoleCode');
-        setCurrentRoleCode(stored || undefined);
-    }, []);
+        const timeoutId = setTimeout(() => {
+            setSearch(searchText);
+            setPage(1);
+        }, 500);
+        return () => clearTimeout(timeoutId);
+    }, [searchText]);
 
-    // Re-fetch when currentRoleCode changes
+
+
+    const [isAreaLoading, setIsAreaLoading] = useState(false);
+    const [isSeniorLoading, setIsSeniorLoading] = useState(false);
+    const [isDeptLoading, setIsDeptLoading] = useState(false);
+    const [isMgrLoading, setIsMgrLoading] = useState(false);
+
+    const fetchAreaManagers = async () => {
+        if (areaManagersList.length > 0) return;
+        setIsAreaLoading(true);
+        try {
+            const area = await employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC', limit: 100 });
+            setAreaManagersList(area?.data || area || []);
+        } finally {
+            setIsAreaLoading(false);
+        }
+    }
+
+    const fetchSeniorDeptManagers = async () => {
+        if (seniorDeptManagersList.length > 0) return;
+        setIsSeniorLoading(true);
+        try {
+            const senior = await employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO', limit: 100 });
+            setSeniorDeptManagersList(senior?.data || senior || []);
+        } finally {
+            setIsSeniorLoading(false);
+        }
+    }
+
+    const fetchDeptManagers = async () => {
+        if (deptManagersList.length > 0) return;
+        setIsDeptLoading(true);
+        try {
+            const dept = await employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG', limit: 100 });
+            setDeptManagersList(dept?.data || dept || []);
+        } finally {
+            setIsDeptLoading(false);
+        }
+    }
+
+    const fetchManagers = async () => {
+        if (managersList.length > 0) return;
+        setIsMgrLoading(true);
+        try {
+            const mgr = await employeeApi.getEmployees({ roleCode: 'QUAN_LY', limit: 100 });
+            setManagersList(mgr?.data || mgr || []);
+        } finally {
+            setIsMgrLoading(false);
+        }
+    }
+
     useEffect(() => {
         fetchEmployees();
-    }, [currentRoleCode]);
+    }, [currentRoleCode, page, limit, search, selectedAreaManager, selectedSeniorDeptManager, selectedDeptManager, selectedManager]);
 
-    // Listen for custom event dispatched from same-tab sidebar navigation
     useEffect(() => {
         const handleRoleChange = () => {
             const stored = sessionStorage.getItem('employeeRoleCode');
@@ -65,6 +157,58 @@ export default function EmployeePage() {
     const handleCreateClick = () => {
         setEditingEmployee(null);
         setIsModalOpen(true);
+    };
+
+    const removeVietnameseTones = (str: string) => {
+        return str
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/đ/g, 'd')
+            .replace(/Đ/g, 'D')
+            .toLowerCase();
+    }
+
+    const handleSearch = (value: string) => {
+        const keyword = removeVietnameseTones(value);
+
+        const filtered = areaManagersList.filter((m: any) =>
+            removeVietnameseTones(m.fullName).includes(keyword)
+        );
+        setFilteredManagers(filtered);
+    };
+
+
+    const handleExportExcel = async () => {
+        try {
+            message.loading({ content: 'Đang xuất file...', key: 'exportExcel' });
+
+            const queryPayload: any = {};
+
+            if (selectedAreaManager) queryPayload.areaManagerId = selectedAreaManager;
+            if (selectedSeniorDeptManager) queryPayload.seniorDeptManagerId = selectedSeniorDeptManager;
+            if (selectedDeptManager) queryPayload.deptManagerId = selectedDeptManager;
+            if (selectedManager) queryPayload.managerId = selectedManager;
+
+            if (currentRoleCode && !currentRoleCode.includes(',')) {
+                queryPayload.roleCode = currentRoleCode;
+            }
+
+            const blob = await employeeApi.exportExcel(queryPayload);
+
+            // Create object url and trigger download
+            const url = window.URL.createObjectURL(blob as Blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'Employees.xlsx';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            message.success({ content: 'Xuất file thành công', key: 'exportExcel' });
+        } catch (error: any) {
+            message.error({ content: error.message || 'Lỗi khi xuất file Excel', key: 'exportExcel' });
+        }
     };
 
     const handleEditClick = (record: any) => {
@@ -103,13 +247,48 @@ export default function EmployeePage() {
 
     const handleModalSubmit = async (values: any) => {
         try {
+
+            const avatarFile = values.avatarFile?.[0]?.originFileObj;
+            const idFrontFile = values.idFrontFile?.[0]?.originFileObj;
+            const idBackFile = values.idBackFile?.[0]?.originFileObj;
+
+            const employeeData = { ...values };
+            delete employeeData.avatarFile;
+            delete employeeData.idFrontFile;
+            delete employeeData.idBackFile;
+
+            let employeeId = '';
+
             if (editingEmployee) {
-                await employeeApi.updateEmployee(editingEmployee.id, values);
+                await employeeApi.updateEmployee(editingEmployee.id, employeeData);
+                employeeId = editingEmployee.id;
                 message.success('Cập nhật thành công');
             } else {
-                await employeeApi.createEmployee(values);
+                const newEmployee = await employeeApi.createEmployee(employeeData);
+                employeeId = newEmployee.id;
                 message.success('Thêm nhân viên thành công');
             }
+
+            const uploadPromises = [];
+            if (avatarFile) {
+                uploadPromises.push(employeeApi.uploadImage(employeeId, 'AVATAR', avatarFile));
+            }
+            if (idFrontFile) {
+                uploadPromises.push(employeeApi.uploadImage(employeeId, 'ID_FRONT', idFrontFile));
+            }
+            if (idBackFile) {
+                uploadPromises.push(employeeApi.uploadImage(employeeId, 'ID_BACK', idBackFile));
+            }
+
+            if (uploadPromises.length > 0) {
+                try {
+                    await Promise.all(uploadPromises);
+                    message.success('Đã tải ảnh lên thành công');
+                } catch (error) {
+                    message.error('Có lỗi xảy ra khi tải ảnh lên');
+                }
+            }
+
             fetchEmployees();
         } catch (error: any) {
             throw error;
@@ -122,7 +301,7 @@ export default function EmployeePage() {
             dataIndex: 'stt',
             key: 'stt',
             width: 100,
-            render: (text: any, record: any, index: number) => index + 1,
+            render: (text: any, record: any, index: number) => (page - 1) * limit + index + 1,
         },
         {
             title: 'Mã NV',
@@ -132,9 +311,12 @@ export default function EmployeePage() {
         },
         {
             title: 'Hình ảnh',
-            dataIndex: 'avatar',
+            dataIndex: 'files',
             key: 'avatar',
-            render: () => <Avatar icon={<UserOutlined />} src="https://api.dicebear.com/7.x/miniavs/svg?seed=1" />
+            render: (files: any[], record: any) => {
+                const avatarFile = files?.find((f: any) => f.category === 'AVATAR');
+                return <Avatar icon={<UserOutlined />} src={avatarFile ? avatarFile.filePath : `https://api.dicebear.com/7.x/miniavs/svg?seed=${record.employeeCode}`} />;
+            }
         },
         {
             title: 'Họ tên',
@@ -174,6 +356,19 @@ export default function EmployeePage() {
                 <Space size="middle">
                     <Button
                         type="text"
+                        icon={<EyeOutlined style={{ color: '#52c41a' }} />}
+                        onClick={async () => {
+                            try {
+                                const details = await employeeApi.getEmployeeById(record.id);
+                                setViewingEmployee(details);
+                                setIsDetailModalOpen(true);
+                            } catch (e: any) {
+                                message.error(e.message || 'Lỗi khi lấy thông tin nhân viên');
+                            }
+                        }}
+                    />
+                    <Button
+                        type="text"
                         icon={<EditOutlined style={{ color: '#1890ff' }} />}
                         onClick={() => handleEditClick(record)}
                     />
@@ -198,6 +393,13 @@ export default function EmployeePage() {
                     Danh sách nhân sự
                 </Title>
                 <Space>
+                    <Input.Search
+                        placeholder="Tìm kiếm nhân viên..."
+                        allowClear
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        style={{ width: 250 }}
+                    />
                     {selectedRowKeys.length > 0 && (
                         <Popconfirm
                             title={`Xóa ${selectedRowKeys.length} nhân viên`}
@@ -207,10 +409,16 @@ export default function EmployeePage() {
                             cancelText="Không"
                         >
                             <Button danger type="primary" icon={<DeleteOutlined />}>
-                                Xóa đã chọn ({selectedRowKeys.length})
+                                Xóa ({selectedRowKeys.length})
                             </Button>
                         </Popconfirm>
                     )}
+                    <Button
+                        icon={<DownloadOutlined />}
+                        onClick={handleExportExcel}
+                    >
+                        Export Excel
+                    </Button>
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
@@ -220,6 +428,72 @@ export default function EmployeePage() {
                         Thêm nhân viên
                     </Button>
                 </Space>
+            </div>
+
+            {/* Filter Dropdowns */}
+            <div style={{ marginBottom: '24px' }}>
+                <Row gutter={16}>
+                    <Col span={6}>
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn Trưởng vùng"
+                            allowClear
+                            value={selectedAreaManager}
+                            onChange={(val) => { setSelectedAreaManager(val); setPage(1); }}
+                            onOpenChange={(open) => open && fetchAreaManagers()}
+                            loading={isAreaLoading}
+                            options={areaManagersList.map((m: any) => ({
+                                label: m.fullName,
+                                value: m.id
+                            }))}
+                            onSearch={handleSearch}
+                            showSearch
+
+                        />
+                    </Col>
+                    <Col span={6}>
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn Trưởng phòng cấp cao"
+                            allowClear
+                            value={selectedSeniorDeptManager}
+                            onChange={(val) => { setSelectedSeniorDeptManager(val); setPage(1); }}
+                            onOpenChange={(open) => open && fetchSeniorDeptManagers()}
+                            loading={isSeniorLoading}
+                            options={seniorDeptManagersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
+                            showSearch
+                            optionFilterProp="label"
+                        />
+                    </Col>
+                    <Col span={6}>
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn Trưởng phòng"
+                            allowClear
+                            value={selectedDeptManager}
+                            onChange={(val) => { setSelectedDeptManager(val); setPage(1); }}
+                            onOpenChange={(open) => open && fetchDeptManagers()}
+                            loading={isDeptLoading}
+                            options={deptManagersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
+                            showSearch
+                            optionFilterProp="label"
+                        />
+                    </Col>
+                    <Col span={6}>
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn Quản lý"
+                            allowClear
+                            value={selectedManager}
+                            onChange={(val) => { setSelectedManager(val); setPage(1); }}
+                            onOpenChange={(open) => open && fetchManagers()}
+                            loading={isMgrLoading}
+                            options={managersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
+                            showSearch
+                            optionFilterProp="label"
+                        />
+                    </Col>
+                </Row>
             </div>
 
             <ConfigProvider
@@ -248,7 +522,20 @@ export default function EmployeePage() {
                     rowKey="id"
                     loading={loading}
                     scroll={{ x: 1200 }}
-                    pagination={{ pageSize: 10 }}
+                    pagination={{
+                        current: page,
+                        pageSize: limit,
+                        total: total,
+                        showSizeChanger: true,
+                        showTotal: (total) => `Tổng cộng ${total} nhân viên`,
+                        onChange: (newPage, newPageSize) => {
+                            setPage(newPage);
+                            setLimit(newPageSize);
+                        }
+                    }}
+                    locale={{
+                        emptyText: 'Không tìm thấy kết quả phù hợp'
+                    }}
                 />
             </ConfigProvider>
 
@@ -259,6 +546,12 @@ export default function EmployeePage() {
                 onCancel={() => setIsModalOpen(false)}
                 onOk={handleModalSubmit}
                 currentRoleCode={editingEmployee?.roleCode ?? currentRoleCode}
+            />
+
+            <EmployeeDetailModal
+                visible={isDetailModalOpen}
+                employee={viewingEmployee}
+                onClose={() => setIsDetailModalOpen(false)}
             />
         </div>
     );

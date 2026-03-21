@@ -4,7 +4,10 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { App as AntdApp } from 'antd';
 import LenisProvider from '@/components/providers/LenisProvider';
 import MainLayout from '@/components/layout/MainLayout';
-import "./globals.css"; const geistSans = Geist({
+import "./globals.css";
+import SettingsProvider from "@/components/provideres/SettingProvider";
+
+const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
 });
@@ -30,7 +33,9 @@ export default function RootLayout({
         <AntdRegistry>
           <AntdApp>
             <LenisProvider>
-              <MainLayout>{children}</MainLayout>
+              <SettingsProvider>
+                <MainLayout>{children}</MainLayout>
+              </SettingsProvider>
             </LenisProvider>
           </AntdApp>
         </AntdRegistry>

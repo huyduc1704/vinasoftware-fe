@@ -1,16 +1,17 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider } from 'antd';
+import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider, Badge, App } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter } from 'next/navigation';
 import { contractApi } from '@/utils/api';
 import dayjs from 'dayjs';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 export default function ContractListPage() {
+    const { message } = App.useApp();
     const router = useRouter();
     const [contracts, setContracts] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
@@ -55,7 +56,6 @@ export default function ContractListPage() {
             dataIndex: 'stt',
             key: 'stt',
             width: 60,
-            render: (text: any, record: any, index: number) => index + 1,
         },
         {
             title: 'Mã hợp đồng',
@@ -87,7 +87,42 @@ export default function ContractListPage() {
             dataIndex: 'totalAmount',
             key: 'totalAmount',
             width: 150,
-            render: (val: number) => val ? val.toLocaleString() + ' ₫' : '-',
+            render: (val: any) => {
+                if (!val) return '-';
+                return new Intl.NumberFormat('vi-VN').format(Number(val)) + ' ₫';
+            },
+        },
+        {
+            title: 'Trạng thái',
+            dataIndex: 'status',
+            key: 'status',
+            width: 50,
+            align: 'center',
+            filters: [
+                { text: 'Đang thực hiện', value: 'ACTIVE' },
+                { text: 'Chờ xử lý', value: 'PENDING' },
+                { text: 'Đã hoàn thành', value: 'COMPLETED' }
+            ],
+            onFilter: (value: any, record: any) => record.status === value,
+            render: (status: string) => {
+                const getColor = () => {
+                    if (status === 'COMPLETED') return 'green';
+                    if (status === 'PENDING') return 'gold';
+                    if (status === 'ACTIVE') return 'blue';
+                    return 'default';
+                };
+
+                return (
+                    <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <Badge
+                            color={getColor()}
+                            style={{
+                                transform: 'scale(1.4)',
+                            }}
+                        />
+                    </div>
+                );
+            }
         },
         {
             title: 'Thao tác',
@@ -130,6 +165,15 @@ export default function ContractListPage() {
                 </Button>
             </div>
 
+            <div style={{ marginBottom: 16 }}>
+                <Space size="large" wrap>
+                    <Text strong>Trạng thái hợp đồng:</Text>
+                    <Badge color="blue" text="Đang thực hiện" />
+                    <Badge color="gold" text="Chờ xử lý" />
+                    <Badge color="green" text="Đã hoàn thành" />
+                </Space>
+            </div>
+
             <ConfigProvider
                 theme={{
                     components: {
@@ -143,7 +187,7 @@ export default function ContractListPage() {
             >
                 <Table
                     columns={columns}
-                    dataSource={contracts}
+                    dataSource={contracts.map((item: any, index: number) => ({ ...item, stt: index + 1 }))}
                     rowKey="id"
                     loading={loading}
                     scroll={{ x: 1000 }}

@@ -1,10 +1,11 @@
 'use client';
 
 import React from 'react';
-import { Layout, Menu, theme, ConfigProvider } from 'antd';
+import { Layout, Menu, theme, ConfigProvider, Image } from 'antd';
 import { DashboardOutlined, ControlOutlined, SettingOutlined, FileImageOutlined, EditOutlined, UserOutlined, CustomerServiceOutlined } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { useRouter } from 'next/navigation';
+import { useSettings } from '@/components/provideres/SettingProvider';
 
 const { Sider } = Layout;
 
@@ -81,6 +82,8 @@ export default function MainSider() {
         token: { colorBgContainer },
     } = theme.useToken();
 
+    const { logoUrl } = useSettings();
+
     const onMenuClick: MenuProps['onClick'] = (e) => {
         const navigateToEmployee = (roleCode: string | null) => {
             if (roleCode) {
@@ -110,8 +113,23 @@ export default function MainSider() {
             router.push('/customers');
         } else if (e.key === 'accountant') {
             router.push('/accounting/contracts');
+        } else if (e.key === 'import_contracts') {
+            router.push('/accounting/contracts/import');
+        } else if (e.key === 'permission_group') {
+            router.push('/admin/roles');
+        } else if (e.key === 'admin_info') {
+            router.push('/admin/profile');
+        } else if (e.key === 'admin_account') {
+            router.push('/admin/accounts');
+        } else if (e.key === 'customer_account') {
+            router.push('/admin/guests');
+        } else if (e.key === 'logo') {
+            router.push('/admin/system-settings/logo');
+        } else if (e.key === 'favicon') {
+            router.push('/admin/system-settings/favicon');
+        } else if (e.key === 'footer') {
+            router.push('/admin/system-settings/footer');
         }
-
     };
 
     return (
@@ -129,10 +147,23 @@ export default function MainSider() {
                     borderBottom: '1px solid #f0f0f0',
                 }}
             >
-                <div style={{ textAlign: 'center' }}>
-                    <h1 style={{ color: '#d32f2f', margin: 0, fontSize: '26px', fontWeight: 900, lineHeight: 1, letterSpacing: '1px' }}>
-                        VNS <span style={{ fontSize: '11px', fontWeight: 600, display: 'inline-block', verticalAlign: 'middle', textAlign: 'left', lineHeight: '1.2' }}>VINA<br />SOFTWARE</span>
-                    </h1>
+                <div
+                    style={{ textAlign: 'center', padding: '0 16px', width: '100%', cursor: 'pointer' }}
+                    onClick={() => router.push('/')}
+                >
+                    {logoUrl ? (
+                        <Image
+                            src={logoUrl}
+                            preview={false}
+                            alt="Logo"
+                            style={{ maxHeight: '40px', maxWidth: '100%', objectFit: 'contain' }}
+                        />
+                    ) : (
+                        /* Giữ lại fallback text nếu chưa có logo */
+                        <h1 style={{ color: '#d32f2f', margin: 0, fontSize: '26px', fontWeight: 900, lineHeight: 1, letterSpacing: '1px' }}>
+                            VNS <span style={{ fontSize: '11px', fontWeight: 600, display: 'inline-block', verticalAlign: 'middle', textAlign: 'left', lineHeight: '1.2' }}>VINA<br />SOFTWARE</span>
+                        </h1>
+                    )}
                 </div>
             </div>
             <ConfigProvider

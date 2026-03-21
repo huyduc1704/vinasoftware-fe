@@ -1,0 +1,28 @@
+.ag-theme-quartz {
+    --ag-header-background-color: #fafafa;
+    --ag-header-foreground-color: #000;
+    --ag-header-column-separator-display: block;
+    --ag-header-column-separator-color: #e8e8e8;
+    --ag-row-hover-color: #e6f7ff;
+    --ag-selected-row-background-color: #bae7ff;
+    --ag-font-size: 13px;
+    --ag-border-color: #e8e8e8;
+}
+
+.ag-header-cell-label {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+.ag-header-group-cell-label {
+    font-weight: 700;
+    justify-content: center;
+    text-transform: uppercase;
+    color: #1677ff;
+}
+
+.ag-cell {
+    display: flex;
+    align-items: center;
+}

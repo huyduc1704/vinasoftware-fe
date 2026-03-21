@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Form, Input, Select, Button, DatePicker, Row, Col, Tabs, Typography, Switch, message, ConfigProvider, Space, InputNumber, Spin } from 'antd';
+import { Form, Input, Select, Button, DatePicker, Row, Col, Tabs, Typography, Switch, message, ConfigProvider, Space, InputNumber, Spin, App } from 'antd';
 import { useRouter, useParams } from 'next/navigation';
 import { contractApi, customerApi, employeeApi } from '@/utils/api';
 import dayjs from 'dayjs';
@@ -11,6 +11,7 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 export default function ContractDetailPage() {
+    const { message } = App.useApp();
     const router = useRouter();
     const params = useParams();
     const id = params?.id as string;
@@ -72,6 +73,52 @@ export default function ContractDetailPage() {
                     const emp = mainEmployee?.employee;
                     const customer = data.customer;
                     const sd = data.serviceDetails || {};
+                    if (Object.keys(sd).length === 0 && Array.isArray(data.services)) {
+                        data.services.forEach((s: any) => {
+                            const numericTotal = s.total || s.totalAmount ? Number(s.total || s.totalAmount) : undefined;
+                            const numericPrice = s.price !== null && s.price !== undefined ? Number(s.price) : undefined;
+                            const numericVat = s.vatAmount !== null && s.vatAmount !== undefined ? Number(s.vatAmount) : undefined;
+                            const numericVatRate = s.vatRate !== null && s.vatRate !== undefined ? Number(s.vatRate) : undefined;
+
+                            if (s.type === 'WEB') {
+                                if (s.name?.toLowerCase().includes('nâng cấp') && !s.name?.toLowerCase().includes('thiết kế')) {
+                                    sd.webUpgrade = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, ...s.webInfo };
+                                    sd.webUpgradeInfo = { chucNang: s.webInfo?.chucNang };
+                                } else {
+                                    sd.web = { giaHopDong: numericPrice !== undefined ? numericPrice : numericTotal, vatRate: numericVatRate, tongThanhToan: numericTotal, tongGiaTri: numericTotal, ...s.webInfo };
+                                    sd.webInfo = { chucNang: s.webInfo?.chucNang };
+                                }
+                            } else if (s.type === 'HOSTING') {
+                                if (s.name?.toLowerCase().includes('nâng cấp')) {
+                                    sd.hostingUpgrade = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, vatAmount: numericVat, hostVat: numericTotal, ...s.hostingInfo };
+                                    sd.hostingUpgradeInfo = { thoiGian: s.hostingInfo?.duration, dungLuong: s.hostingInfo?.storage };
+                                } else {
+                                    sd.hosting = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, vatAmount: numericVat, hostVat: numericTotal, ...s.hostingInfo };
+                                    sd.hostingInfo = { thoiGian: s.hostingInfo?.duration, dungLuong: s.hostingInfo?.storage };
+                                }
+                            } else if (s.type === 'DOMAIN') {
+                                sd.domain = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, vatAmount: numericVat, ...s.domainInfo };
+                                sd.domainInfo = { diaChiTenMien: s.domainInfo?.domainName, donViDangKy: s.domainInfo?.provider, ngayHetHan: s.domainInfo?.expiryDate ? dayjs(s.domainInfo.expiryDate) : null };
+                            } else if (s.type === 'OTHER') {
+                                sd.mailServer = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, vatAmount: numericVat, hostVat: numericTotal };
+                            } else if (s.type === 'ADS_GG') {
+                                sd.ads = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, ...s.adsInfo };
+                                sd.adsInfo = { ...s.adsInfo, ngayKichHoat: s.adsInfo?.ngayKichHoat ? dayjs(s.adsInfo.ngayKichHoat) : null, ngayHetHan: s.adsInfo?.ngayHetHan ? dayjs(s.adsInfo.ngayHetHan) : null };
+                            } else if (s.type === 'ADS_FB') {
+                                sd.facebook = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, ...s.facebookInfo };
+                                sd.facebookInfo = { ...s.facebookInfo, ngayKichHoat: s.facebookInfo?.ngayKichHoat ? dayjs(s.facebookInfo.ngayKichHoat) : null };
+                            }
+                        });
+                        if (Array.isArray(data.paymentStages) && data.paymentStages.length > 0) {
+                            if (!sd.webChiTiet) sd.webChiTiet = {};
+                            const stage1 = data.paymentStages.find((p: any) => p.name === 'Lần 1');
+                            if (stage1) sd.webChiTiet.dot1 = Number(stage1.amount);
+                            const stage2 = data.paymentStages.find((p: any) => p.name === 'Lần 2');
+                            if (stage2) sd.webChiTiet.dot2 = Number(stage2.amount);
+                            const stage3 = data.paymentStages.find((p: any) => p.name === 'Bàn giao' || p.name?.toLowerCase() === 'bàn giao');
+                            if (stage3) sd.webChiTiet.banGiao = Number(stage3.amount);
+                        }
+                    }
 
                     // Store formatted values in state — will be applied to form in a
                     // separate useEffect after pageLoading=false so the form is mounted first
@@ -198,6 +245,107 @@ export default function ContractDetailPage() {
             const { customerInfo: _existCi, ...existingSDClean } = existingSD;
             const mergedServiceDetails = { ...existingSDClean, ...formattedServiceDetails };
 
+            const services: any[] = [];
+
+            // Map logic for Info to Backend schema names
+            const mapWebInfo = (info: any) => info ? { chucNang: info.chucNang } : null;
+            const mapHostingInfo = (info: any) => info ? { duration: info.thoiGian, storage: info.dungLuong } : null;
+            const mapDomainInfo = (info: any) => info ? { domainName: info.diaChiTenMien, provider: info.donViDangKy, expiryDate: info.ngayHetHan ? (typeof info.ngayHetHan.toISOString === 'function' ? info.ngayHetHan.toISOString() : info.ngayHetHan) : null } : null;
+
+            if (mergedServiceDetails.web?.giaHopDong || mergedServiceDetails.webInfo?.chucNang) {
+                services.push({
+                    type: 'WEB',
+                    name: 'Thiết kế web',
+                    price: mergedServiceDetails.web?.giaHopDong || 0,
+                    vatRate: mergedServiceDetails.web?.vatRate || 0,
+                    totalAmount: mergedServiceDetails.web?.tongThanhToan || mergedServiceDetails.web?.tongGiaTri || mergedServiceDetails.web?.giaHopDong || 0,
+                    webInfo: mapWebInfo(mergedServiceDetails.webInfo)
+                });
+            }
+            if (mergedServiceDetails.webUpgrade?.giaTriHopDong || mergedServiceDetails.webUpgradeInfo?.chucNang) {
+                services.push({
+                    type: 'WEB',
+                    name: 'Nâng cấp web',
+                    price: mergedServiceDetails.webUpgrade?.giaTriHopDong || 0,
+                    totalAmount: mergedServiceDetails.webUpgrade?.giaTriHopDong || 0,
+                    webInfo: mapWebInfo(mergedServiceDetails.webUpgradeInfo)
+                });
+            }
+            if (mergedServiceDetails.hosting?.giaTriHopDong || mergedServiceDetails.hostingInfo) {
+                services.push({
+                    type: 'HOSTING',
+                    name: 'Hosting',
+                    price: mergedServiceDetails.hosting?.giaTriHopDong || 0,
+                    vatAmount: mergedServiceDetails.hosting?.vatAmount || 0,
+                    totalAmount: mergedServiceDetails.hosting?.hostVat || mergedServiceDetails.hosting?.giaTriHopDong || 0,
+                    hostingInfo: mapHostingInfo(mergedServiceDetails.hostingInfo)
+                });
+            }
+            if (mergedServiceDetails.hostingUpgrade?.giaTriHopDong || mergedServiceDetails.hostingUpgradeInfo) {
+                services.push({
+                    type: 'HOSTING',
+                    name: 'Nâng cấp Hosting',
+                    price: mergedServiceDetails.hostingUpgrade?.giaTriHopDong || 0,
+                    vatAmount: mergedServiceDetails.hostingUpgrade?.vatAmount || 0,
+                    totalAmount: mergedServiceDetails.hostingUpgrade?.hostVat || mergedServiceDetails.hostingUpgrade?.giaTriHopDong || 0,
+                    hostingInfo: mapHostingInfo(mergedServiceDetails.hostingUpgradeInfo)
+                });
+            }
+            if (mergedServiceDetails.domain?.giaTriHopDong || mergedServiceDetails.domainInfo) {
+                const domainPrice = mergedServiceDetails.domain?.giaTriHopDong || 0;
+                const domainVat = mergedServiceDetails.domain?.vatAmount || 0;
+                services.push({
+                    type: 'DOMAIN',
+                    name: 'Tên miền',
+                    price: domainPrice,
+                    vatAmount: domainVat,
+                    totalAmount: domainPrice + domainVat,
+                    domainInfo: mapDomainInfo(mergedServiceDetails.domainInfo)
+                });
+            }
+            if (mergedServiceDetails.mailServer?.giaTriHopDong) {
+                services.push({
+                    type: 'OTHER',
+                    name: 'Mail Server',
+                    price: mergedServiceDetails.mailServer?.giaTriHopDong || 0,
+                    vatAmount: mergedServiceDetails.mailServer?.vatAmount || 0,
+                    totalAmount: mergedServiceDetails.mailServer?.hostVat || mergedServiceDetails.mailServer?.giaTriHopDong || 0
+                });
+            }
+            if (mergedServiceDetails.ads?.giaTriHopDong || mergedServiceDetails.adsInfo) {
+                services.push({
+                    type: 'ADS_GG',
+                    name: 'Quảng cáo Ads',
+                    price: mergedServiceDetails.ads?.giaTriHopDong || 0,
+                    totalAmount: mergedServiceDetails.ads?.giaTriHopDong || 0,
+                    adsInfo: mergedServiceDetails.adsInfo || null
+                });
+            }
+            if (mergedServiceDetails.facebook?.giaTriHopDong || mergedServiceDetails.facebookInfo) {
+                services.push({
+                    type: 'ADS_FB',
+                    name: 'Quảng cáo Facebook',
+                    price: mergedServiceDetails.facebook?.giaTriHopDong || 0,
+                    totalAmount: mergedServiceDetails.facebook?.giaTriHopDong || 0,
+                    facebookInfo: mergedServiceDetails.facebookInfo || null
+                });
+            }
+
+            const paymentStages: any[] = [];
+            let paymentOrder = 1;
+
+            const dot1Amount = (mergedServiceDetails.webChiTiet?.dot1 || 0) + (mergedServiceDetails.webUpgrade?.dot1 || 0) + (mergedServiceDetails.ads?.dot1 || 0) + (mergedServiceDetails.facebook?.dot1 || 0);
+            if (dot1Amount > 0) paymentStages.push({ name: 'Lần 1', amount: dot1Amount, order: paymentOrder++, paidDate: null });
+
+            const dot2Amount = (mergedServiceDetails.webChiTiet?.dot2 || 0) + (mergedServiceDetails.webUpgrade?.treo50Percent || 0) + (mergedServiceDetails.ads?.dot2 || 0) + (mergedServiceDetails.facebook?.dot2 || 0);
+            if (dot2Amount > 0) paymentStages.push({ name: 'Lần 2', amount: dot2Amount, order: paymentOrder++, paidDate: null });
+
+            const banGiaoAmount = (mergedServiceDetails.webChiTiet?.banGiao || 0) + (mergedServiceDetails.webUpgrade?.banGiao || 0);
+            if (banGiaoAmount > 0) paymentStages.push({ name: 'Bàn giao', amount: banGiaoAmount, order: paymentOrder++, paidDate: null });
+
+            const contractEmployees = values.employeeId ? [{ employeeId: values.employeeId, isMain: true }] : [];
+            const parseId = (id: string) => id ? id : null;
+
             // Only send fields that exist in the Contracts Prisma schema
             const contractData: Record<string, any> = {
                 contractCode: values.contractCode,
@@ -207,19 +355,21 @@ export default function ContractDetailPage() {
                 receiptCode: values.receiptCode,
                 signDate: values.signDate ? values.signDate.toISOString() : null,
                 submissionDate: values.submissionDate ? values.submissionDate.toISOString() : null,
+                features: values.features,
+                note: values.note,
                 totalAmount: values.totalAmount,
                 vatAmount: values.vatAmount,
                 vatRate: values.vatRate,
                 paidAmount: values.paidAmount,
                 remainingAmount: values.remainingAmount,
-                serviceDetails: mergedServiceDetails,
-                paymentStages: values.paymentStages,
+                services: services,
+                paymentStages: paymentStages,
                 customerId: values.customerId,
                 regionCode: values.regionCode,
-                managerId: values.topRegionManager,
-                deptManagerId: values.topDeptManager,
-                seniorDeptManagerId: values.topSeniorManager,
-                employees: values.employeeId ? [{ employeeId: values.employeeId, isMain: true }] : [],
+                managerId: parseId(values.topRegionManager),
+                deptManagerId: parseId(values.topDeptManager),
+                seniorDeptManagerId: parseId(values.topSeniorManager),
+                contractEmployees: contractEmployees,
             };
 
             // Remove undefined keys to avoid sending null for unchanged fields
@@ -292,6 +442,9 @@ export default function ContractDetailPage() {
                 <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpName" label="TÊN NVKD"><Input placeholder="Tên NVKD" /></Form.Item></Col>
                 <Col xs={24} md={12} xl={6}><Form.Item name="displayDept" label="PHÒNG"><Input placeholder="Phòng" /></Form.Item></Col>
                 <Col xs={24} md={12} xl={6}><Form.Item name="displayRegion" label="KHU VỰC"><Input placeholder="Khu vực" /></Form.Item></Col>
+            </Row>
+            <Row gutter={24} style={{ marginTop: '16px' }}>
+                <Col xs={24}><Form.Item name="note" label="GHI CHÚ"><TextArea rows={2} placeholder="Nhập ghi chú" /></Form.Item></Col>
             </Row>
         </div>
     );
@@ -467,11 +620,11 @@ export default function ContractDetailPage() {
     const ContractTab = (
         <div style={{ padding: '24px', background: '#fff' }}>
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG WEB" />
-            <Form.Item name={['serviceDetails', 'webInfo', 'chucNang']} label="CHỨC NĂNG" labelCol={{ span: 24 }}>
+            <Form.Item name="features" label="CHỨC NĂNG" labelCol={{ span: 24 }}>
                 <TextArea rows={3} placeholder="Chức năng" />
             </Form.Item>
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG NÂNG CẤP WEB" />
-            <Form.Item name={['serviceDetails', 'webUpgradeInfo', 'chucNang']} label="CHỨC NĂNG" labelCol={{ span: 24 }}>
+            <Form.Item name="features" label="CHỨC NĂNG" labelCol={{ span: 24 }}>
                 <TextArea rows={3} placeholder="Chức năng" />
             </Form.Item>
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG HOSTING" />

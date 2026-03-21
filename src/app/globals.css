@@ -53,15 +53,18 @@ input[type="number"] {
   appearance: textfield;
 }
 
-/* Active card tab: red top border + red text */
+/* Active card tab: yellow top border + yellow text */
+.contract-tabs .ant-tabs-tab {
+  border: 1px solid #fce254 !important;
+}
+
 .contract-tabs .ant-tabs-tab.ant-tabs-tab-active {
-  border-top: 2px solid #ff4d4f !important;
-  border-left: 1px solid #ff4d4f !important;
-  border-right: 1px solid #ff4d4f !important;
+  border-top: 1px solid #fce254 !important;
+  border-bottom-color: transparent !important;
 }
 
 .contract-tabs .ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn {
-  color: #ff4d4f !important;
+  color: #fce254 !important;
   font-weight: 600;
 }
 

@@ -1,0 +1,1592 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/": {
+      "get": {
+        "operationId": "AppController_getHello",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "App"
+        ]
+      }
+    },
+    "/users": {
+      "post": {
+        "operationId": "UsersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "get": {
+        "operationId": "UsersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "operationId": "UsersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "patch": {
+        "operationId": "UsersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      },
+      "delete": {
+        "operationId": "UsersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "operationId": "AuthController_login",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Đăng nhập vào hệ thống",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "operationId": "AuthController_getMe",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy thông tin user hiện tại và danh sách nhóm quyền của user đang login",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/refresh-token": {
+      "post": {
+        "operationId": "AuthController_refreshToken",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Cấp lại Access Token mới khi token cũ hết hạn",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/change-password": {
+      "put": {
+        "operationId": "AuthController_changePassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangePasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Đổi mật khẩu",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "summary": "Đăng xuất khỏi hệ thống",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/api/employees": {
+      "get": {
+        "operationId": "EmployeesController_getAllEmployees",
+        "parameters": [
+          {
+            "name": "roleCode",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo roleCode. Hỗ trợ nhiều giá trị phân tách bằng dấu phẩy. VD: NVKD,TRUONG_PHONG,QUAN_LY",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "areaManagerId",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo Trưởng khu vực (Area Manager)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "seniorDeptManagerId",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo Trưởng phòng cấp cao",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deptManagerId",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo Trưởng phòng",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "managerId",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo Quản lý trực tiếp",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy thông tin của nhân viên các cấp",
+        "tags": [
+          "Quản lý nhân sự"
+        ]
+      },
+      "post": {
+        "operationId": "EmployeesController_createEmployee",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Thêm nhân viên mới",
+        "tags": [
+          "Quản lý nhân sự"
+        ]
+      }
+    },
+    "/api/employees/{id}": {
+      "get": {
+        "operationId": "EmployeesController_getEmployeeById",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của nhân sự",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Thông tin chi tiết của 1 nhân viên",
+        "tags": [
+          "Quản lý nhân sự"
+        ]
+      },
+      "patch": {
+        "operationId": "EmployeesController_updateEmployee",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của nhân viên",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateEmployeeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Chỉnh sửa thông tin nhân viên",
+        "tags": [
+          "Quản lý nhân sự"
+        ]
+      },
+      "delete": {
+        "operationId": "EmployeesController_deleteEmployee",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của nhân viên",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Xóa nhân viên",
+        "tags": [
+          "Quản lý nhân sự"
+        ]
+      }
+    },
+    "/api/regions": {
+      "post": {
+        "operationId": "RegionsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRegionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tạo mới khu vực",
+        "tags": [
+          "Quản lý khu vực"
+        ]
+      },
+      "get": {
+        "operationId": "RegionsController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy danh sách tất cả khu vực",
+        "tags": [
+          "Quản lý khu vực"
+        ]
+      }
+    },
+    "/api/regions/{id}": {
+      "get": {
+        "operationId": "RegionsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của khu vực",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tìm thông tin 1 khu vực theo ID",
+        "tags": [
+          "Quản lý khu vực"
+        ]
+      },
+      "patch": {
+        "operationId": "RegionsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của khu vực",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRegionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Chỉnh sửa thông tin khu vực",
+        "tags": [
+          "Quản lý khu vực"
+        ]
+      },
+      "delete": {
+        "operationId": "RegionsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID của khu vực",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Xóa khu vực",
+        "tags": [
+          "Quản lý khu vực"
+        ]
+      }
+    },
+    "/api/customers": {
+      "post": {
+        "operationId": "CustomersController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Thêm khách hàng mới",
+        "tags": [
+          "Quản lý khách hàng"
+        ]
+      },
+      "get": {
+        "operationId": "CustomersController_findAll",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy danh sách khách hàng",
+        "tags": [
+          "Quản lý khách hàng"
+        ]
+      }
+    },
+    "/api/customers/{id}": {
+      "get": {
+        "operationId": "CustomersController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy thông tin khách hàng theo ID",
+        "tags": [
+          "Quản lý khách hàng"
+        ]
+      },
+      "patch": {
+        "operationId": "CustomersController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCustomerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cập nhật thông tin khách hàng",
+        "tags": [
+          "Quản lý khách hàng"
+        ]
+      },
+      "delete": {
+        "operationId": "CustomersController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Xóa khách hàng",
+        "tags": [
+          "Quản lý khách hàng"
+        ]
+      }
+    },
+    "/api/contracts": {
+      "post": {
+        "operationId": "ContractsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateContractDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Tạo mới hợp đồng (Cá nhân hoặc Share)",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      },
+      "get": {
+        "operationId": "ContractsController_findAll",
+        "parameters": [
+          {
+            "name": "type",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo loại (WEB, HOSTING...)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo trạng thái (ACTIVE, DELETED...)",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "employeeId",
+            "required": false,
+            "in": "query",
+            "description": "Lọc theo nhân viên phụ trách",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Lấy danh sách hợp đồng",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      }
+    },
+    "/api/contracts/{id}": {
+      "get": {
+        "operationId": "ContractsController_findOne",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "ID hợp đồng",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Xem chi tiết 1 hợp đồng",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      },
+      "patch": {
+        "operationId": "ContractsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateContractDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Cập nhật thông tin chung (Tiền, phiếu thu, trạng thái...)",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      },
+      "delete": {
+        "operationId": "ContractsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Xóa mềm hợp đồng",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      }
+    },
+    "/api/contracts/{id}/assignees": {
+      "put": {
+        "operationId": "ContractsController_updateAssignees",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAssigneesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Quản lý người phụ trách (Assign / Share)",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      }
+    },
+    "/api/contracts/{id}/renewals": {
+      "post": {
+        "operationId": "ContractsController_addRenewal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRenewalDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Thêm lịch sử gia hạn",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      }
+    },
+    "/api/contracts/{id}/notes": {
+      "post": {
+        "operationId": "ContractsController_addNote",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateNoteDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Thêm ghi chú chăm sóc khách hàng",
+        "tags": [
+          "Quản lý hợp đồng"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Vinasoftware Accounting API",
+    "description": "The Vinasoftware Accounting API description",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [
+    {
+      "name": "accounting",
+      "description": ""
+    }
+  ],
+  "servers": [],
+  "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "access_token"
+      }
+    },
+    "schemas": {
+      "CreateUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "UpdateUserDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "EMP001",
+            "description": "Employee code or username"
+          },
+          "password": {
+            "type": "string",
+            "example": "password123",
+            "description": "User password"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
+      "ChangePasswordDto": {
+        "type": "object",
+        "properties": {
+          "oldPassword": {
+            "type": "string",
+            "example": "oldPassword123"
+          },
+          "newPassword": {
+            "type": "string",
+            "example": "newPassword123"
+          }
+        },
+        "required": [
+          "oldPassword",
+          "newPassword"
+        ]
+      },
+      "CreateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "employeeCode": {
+            "type": "string",
+            "example": "EMP002"
+          },
+          "roleCode": {
+            "type": "string",
+            "example": "MANAGER",
+            "description": "Chức danh của nhân viên"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "Nguyen Van B"
+          },
+          "password": {
+            "type": "string",
+            "example": "12345678"
+          },
+          "email": {
+            "type": "string",
+            "example": "nhanvien@example.com"
+          },
+          "dob": {
+            "type": "string",
+            "example": "1995-01-01T00:00:00Z"
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Đường Điện Biên Phủ, HCM"
+          },
+          "phone": {
+            "type": "string",
+            "example": "0901234567"
+          },
+          "joinDate": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00Z"
+          },
+          "roleId": {
+            "type": "string",
+            "description": "ID của Role được gán (Nếu cấp quyền đăng nhập)"
+          },
+          "regionCode": {
+            "description": "Mã Khu vực (Vùng)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "managerId": {
+            "type": "string",
+            "description": "ID cua nguoi quan ly truc tiep"
+          },
+          "deptManagerId": {
+            "type": "string",
+            "description": "ID truong phong"
+          },
+          "areaManagerId": {
+            "type": "string",
+            "description": "ID Truong khu vuc (Area Manager)"
+          },
+          "seniorDeptManagerId": {
+            "type": "string",
+            "description": "ID truong phong cap cap"
+          }
+        },
+        "required": [
+          "employeeCode",
+          "roleCode",
+          "fullName",
+          "email",
+          "dob",
+          "address",
+          "phone",
+          "joinDate",
+          "managerId"
+        ]
+      },
+      "UpdateEmployeeDto": {
+        "type": "object",
+        "properties": {
+          "employeeCode": {
+            "type": "string",
+            "example": "EMP002"
+          },
+          "roleCode": {
+            "type": "string",
+            "example": "MANAGER",
+            "description": "Chức danh của nhân viên"
+          },
+          "fullName": {
+            "type": "string",
+            "example": "Nguyen Van B"
+          },
+          "password": {
+            "type": "string",
+            "example": "12345678"
+          },
+          "email": {
+            "type": "string",
+            "example": "nhanvien@example.com"
+          },
+          "dob": {
+            "type": "string",
+            "example": "1995-01-01T00:00:00Z"
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Đường Điện Biên Phủ, HCM"
+          },
+          "phone": {
+            "type": "string",
+            "example": "0901234567"
+          },
+          "joinDate": {
+            "type": "string",
+            "example": "2023-01-01T00:00:00Z"
+          },
+          "roleId": {
+            "type": "string",
+            "description": "ID của Role được gán (Nếu cấp quyền đăng nhập)"
+          },
+          "regionCode": {
+            "description": "Mã Khu vực (Vùng)",
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "managerId": {
+            "type": "string",
+            "description": "ID cua nguoi quan ly truc tiep"
+          },
+          "deptManagerId": {
+            "type": "string",
+            "description": "ID truong phong"
+          },
+          "areaManagerId": {
+            "type": "string",
+            "description": "ID Truong khu vuc (Area Manager)"
+          },
+          "seniorDeptManagerId": {
+            "type": "string",
+            "description": "ID truong phong cap cap"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Trang thai hoat dong"
+          },
+          "leaveDate": {
+            "type": "string",
+            "example": "2025-01-01T00:00:00Z",
+            "description": "Ngày nghỉ việc"
+          }
+        },
+        "required": [
+          "isActive",
+          "leaveDate"
+        ]
+      },
+      "CreateRegionDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "HCM",
+            "description": "Mã khu vực (Unique)"
+          },
+          "name": {
+            "type": "string",
+            "example": "Hồ Chí Minh",
+            "description": "Tên khu vực"
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Đường ABC, Phường XYZ",
+            "description": "Địa chỉ khu vực"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Trạng thái hoạt động"
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "address",
+          "isActive"
+        ]
+      },
+      "UpdateRegionDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "HCM",
+            "description": "Mã khu vực (Unique)"
+          },
+          "name": {
+            "type": "string",
+            "example": "Hồ Chí Minh",
+            "description": "Tên khu vực"
+          },
+          "address": {
+            "type": "string",
+            "example": "123 Đường ABC, Phường XYZ",
+            "description": "Địa chỉ khu vực"
+          },
+          "isActive": {
+            "type": "boolean",
+            "example": true,
+            "description": "Trạng thái hoạt động"
+          }
+        }
+      },
+      "CreateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "representative": {
+            "type": "string"
+          },
+          "taxCode": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "dob": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fullName",
+          "representative",
+          "taxCode",
+          "phone",
+          "email",
+          "dob",
+          "address"
+        ]
+      },
+      "UpdateCustomerDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string"
+          },
+          "representative": {
+            "type": "string"
+          },
+          "taxCode": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "dob": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          }
+        }
+      },
+      "InlineCustomerDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "description": "Tên khách hàng / Tên công ty"
+          },
+          "representative": {
+            "type": "string",
+            "description": "Người đại diện"
+          },
+          "taxCode": {
+            "type": "string",
+            "description": "Mã số thuế"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "fullName"
+        ]
+      },
+      "ContractEmployeeDto": {
+        "type": "object",
+        "properties": {}
+      },
+      "CreateContractDto": {
+        "type": "object",
+        "properties": {
+          "contractCode": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "WEB, HOSTING, DOMAIN, ADS_FB, ADS_GG,...."
+          },
+          "receiptCode": {
+            "type": "string"
+          },
+          "signDate": {
+            "type": "string"
+          },
+          "submissionDate": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "vatAmount": {
+            "type": "number"
+          },
+          "vatRate": {
+            "type": "number"
+          },
+          "paidAmount": {
+            "type": "number"
+          },
+          "remainingAmount": {
+            "type": "number"
+          },
+          "serviceDetails": {
+            "type": "object"
+          },
+          "paymentStages": {
+            "type": "object"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "ID khách hàng đã có sẵn. Nếu không có thì truyền customerData để tạo mới."
+          },
+          "customerData": {
+            "description": "Thông tin khách hàng mới (dùng khi chưa có customerId)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InlineCustomerDto"
+              }
+            ]
+          },
+          "regionCode": {
+            "type": "string"
+          },
+          "managerId": {
+            "type": "string"
+          },
+          "deptManagerId": {
+            "type": "string"
+          },
+          "seniorDeptManagerId": {
+            "type": "string"
+          },
+          "employees": {
+            "description": "Danh sách nhân viên phụ trách hợp đồng",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractEmployeeDto"
+            }
+          }
+        },
+        "required": [
+          "contractCode",
+          "title",
+          "type",
+          "employees"
+        ]
+      },
+      "UpdateContractDto": {
+        "type": "object",
+        "properties": {
+          "contractCode": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "description": "WEB, HOSTING, DOMAIN, ADS_FB, ADS_GG,...."
+          },
+          "receiptCode": {
+            "type": "string"
+          },
+          "signDate": {
+            "type": "string"
+          },
+          "submissionDate": {
+            "type": "string"
+          },
+          "totalAmount": {
+            "type": "number"
+          },
+          "vatAmount": {
+            "type": "number"
+          },
+          "vatRate": {
+            "type": "number"
+          },
+          "paidAmount": {
+            "type": "number"
+          },
+          "remainingAmount": {
+            "type": "number"
+          },
+          "serviceDetails": {
+            "type": "object"
+          },
+          "paymentStages": {
+            "type": "object"
+          },
+          "customerId": {
+            "type": "string",
+            "description": "ID khách hàng đã có sẵn. Nếu không có thì truyền customerData để tạo mới."
+          },
+          "customerData": {
+            "description": "Thông tin khách hàng mới (dùng khi chưa có customerId)",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InlineCustomerDto"
+              }
+            ]
+          },
+          "regionCode": {
+            "type": "string"
+          },
+          "managerId": {
+            "type": "string"
+          },
+          "deptManagerId": {
+            "type": "string"
+          },
+          "seniorDeptManagerId": {
+            "type": "string"
+          },
+          "employees": {
+            "description": "Danh sách nhân viên phụ trách hợp đồng",
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ContractEmployeeDto"
+            }
+          },
+          "status": {
+            "type": "string"
+          }
+        }
+      },
+      "AssigneeItemDto": {
+        "type": "object",
+        "properties": {
+          "employeeId": {
+            "type": "string"
+          },
+          "isMain": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "employeeId"
+        ]
+      },
+      "UpdateAssigneesDto": {
+        "type": "object",
+        "properties": {
+          "employees": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssigneeItemDto"
+            }
+          }
+        },
+        "required": [
+          "employees"
+        ]
+      },
+      "CreateRenewalDto": {
+        "type": "object",
+        "properties": {
+          "renewalDate": {
+            "type": "string"
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "renewalDate"
+        ]
+      },
+      "CreateNoteDto": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ]
+      }
+    }
+  }
+}

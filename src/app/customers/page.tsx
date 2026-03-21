@@ -1,16 +1,19 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider, Tag, App } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MinusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
+import gsap from 'gsap';
 import CustomerModal from '@/components/customers/CustomerModal';
 import { customerApi } from '@/utils/api';
+import CustomerDetailModal from '@/components/customers/CustomerDetailModal';
 
 const { Title } = Typography;
 
 export default function CustomerPage() {
+    const { message } = App.useApp();
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
@@ -20,6 +23,14 @@ export default function CustomerPage() {
 
     // Selection state
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+
+    // Expansion State
+    const [expandedRowKeys, setExpandedRowKeys] = useState<React.Key[]>([]);
+    const [collapsingKeys, setCollapsingKeys] = useState<React.Key[]>([]);
+
+    //
+    const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+    const [viewingCustomer, setViewingCustomer] = useState<any>(null);
 
     const fetchCustomers = async () => {
         try {
@@ -80,6 +91,11 @@ export default function CustomerPage() {
         }
     };
 
+    const handleViewClick = (record: any) => {
+        setViewingCustomer(record);
+        setIsDetailModalOpen(true);
+    }
+
     const onSelectChange = (newSelectedRowKeys: React.Key[]) => {
         setSelectedRowKeys(newSelectedRowKeys);
     };
@@ -94,7 +110,7 @@ export default function CustomerPage() {
                 message.success('Thêm khách hàng thành công');
             }
             fetchCustomers();
-            setIsModalOpen(false); // Close here when successful explicitly just in case
+            setIsModalOpen(false);
         } catch (error: any) {
             message.error(error.message || 'Thao tác thất bại');
             throw error;
@@ -110,43 +126,22 @@ export default function CustomerPage() {
             render: (text: any, record: any, index: number) => index + 1,
         },
         {
-            title: 'Phân Loại',
-            key: 'type',
-            width: 150,
-            render: (_, record) => {
-                const types = record.contracts?.map((c: any) => c.type).filter(Boolean);
-                if (!types || types.length === 0) return '-';
-                return types.join(' | ');
-            }
+            title: 'Khách hàng',
+            dataIndex: 'fullName',
+            key: 'fullName',
+            width: 200,
+            render: (text: string) => <strong style={{ color: '#1890ff' }}>{text || 'Đang cập nhật'}</strong>
         },
         {
-            title: 'Mã hợp đồng',
-            key: 'contractCode',
-            width: 150,
+            title: 'Hợp đồng liên quan',
+            key: 'contracts',
             render: (_, record) => {
-                const codes = record.contracts?.map((c: any) => c.contractCode).filter(Boolean);
-                if (!codes || codes.length === 0) return '-';
-                return codes.join(' | ');
-            }
-        },
-        {
-            title: 'Tên HĐ',
-            key: 'contractTitle',
-            width: 250,
-            render: (_, record) => {
-                const titles = record.contracts?.map((c: any) => c.title).filter(Boolean);
-                if (!titles || titles.length === 0) return '-';
-                return titles.join(' | ');
-            }
-        },
-        {
-            title: 'Ngày nộp',
-            key: 'submissionDate',
-            width: 150,
-            render: (_, record) => {
-                const dates = record.contracts?.map((c: any) => c.submissionDate).filter(Boolean);
-                if (!dates || dates.length === 0) return '-';
-                return dates.map((d: string) => dayjs(d).format('DD/MM/YYYY')).join(' | ');
+                const count = record.contracts?.length || 0;
+                return count > 0 ? (
+                    <Tag color="cyan">{count} hợp đồng</Tag>
+                ) : (
+                    <Tag color="default">Chưa có</Tag>
+                );
             }
         },
         {
@@ -171,9 +166,10 @@ export default function CustomerPage() {
                     <Button
                         type="text"
                         icon={<EyeOutlined style={{ color: '#52c41a' }} />}
-                        onClick={() => { /* view logic fallback */ }}
+                        onClick={() => handleViewClick(record)} // Trigger detail modal
                         style={{ background: '#f6ffed' }}
                     />
+
                     <Popconfirm
                         title="Xóa khách hàng"
                         description="Bạn có chắc chắn muốn xóa khách hàng này?"
@@ -187,6 +183,85 @@ export default function CustomerPage() {
             ),
         },
     ];
+
+    // Wrapper Component để apply GSAP Animation khi mở table
+    const AnimatedExpandedRow = ({ record, expanded }: { record: any; expanded: boolean }) => {
+        const wrapperRef = React.useRef<HTMLDivElement>(null);
+
+        useEffect(() => {
+            if (wrapperRef.current) {
+                if (expanded) {
+                    // Hiệu ứng Fade In - Hiện
+                    gsap.fromTo(
+                        wrapperRef.current,
+                        { opacity: 0, height: 0, y: -20 },
+                        { opacity: 1, height: 'auto', y: 0, duration: 0.5, ease: 'power3.out' }
+                    );
+                } else {
+                    // Hiệu ứng Fade Out - Ẩn
+                    gsap.to(wrapperRef.current, {
+                        opacity: 0,
+                        y: -10,
+                        scaleY: 0.95,
+                        duration: 0.3,
+                        ease: 'power2.inOut'
+                    });
+                }
+            }
+        }, [expanded]);
+
+        const nestedColumns: ColumnsType<any> = [
+            { title: 'Mã HĐ', dataIndex: 'contractCode', key: 'contractCode' },
+            { title: 'Tên HĐ', dataIndex: 'title', key: 'title' },
+            { title: 'Loại', dataIndex: 'type', key: 'type', render: (text: string) => <Tag color="blue">{text}</Tag> },
+            { title: 'Ngày nộp', dataIndex: 'submissionDate', key: 'submissionDate', render: (d: string) => d ? dayjs(d).format('DD/MM/YYYY') : '-' },
+            {
+                title: 'Trạng thái', dataIndex: 'status', key: 'status', render: (status: string) => {
+                    const colors: Record<string, string> = { ACTIVE: 'blue', PENDING: 'gold', COMPLETED: 'green' };
+                    return <Tag color={colors[status] || 'default'}>{status}</Tag>;
+                }
+            }
+        ];
+
+        return (
+            <div ref={wrapperRef} style={{ overflow: 'hidden', padding: '12px', background: '#fafafa', borderRadius: '8px' }}>
+                <Table
+                    columns={nestedColumns}
+                    dataSource={record.contracts || []}
+                    pagination={false}
+                    rowKey="id"
+                    size="small"
+                    bordered
+                    style={{ background: '#fff', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                />
+            </div>
+        );
+    };
+
+    const expandedRowRender = (record: any, index: number, indent: number, expanded: boolean) => {
+        const isCollapsing = collapsingKeys.includes(record.id);
+        return <AnimatedExpandedRow record={record} expanded={!isCollapsing} />;
+    };
+
+    // Hàm xử lý việc bung/cụp với thời gian chờ (delay) để chạy animation
+    const handleExpandToggle = (record: any, e: any) => {
+        e.stopPropagation();
+        const isCurrentlyExpanded = expandedRowKeys.includes(record.id);
+
+        if (isCurrentlyExpanded) {
+            // Khi nhấn đóng: Đưa ID vào mảng collapsing để trigger reverse animation
+            setCollapsingKeys(prev => [...prev, record.id]);
+
+            // Chờ 500ms cho GSAP chạy xong hiệu ứng thì mới thực sự xóa node khỏi Ant Design Table
+            setTimeout(() => {
+                setExpandedRowKeys(prev => prev.filter(k => k !== record.id));
+                setCollapsingKeys(prev => prev.filter(k => k !== record.id));
+            }, 300);
+        } else {
+            // Khi mở: Hiện thẳng
+            setExpandedRowKeys(prev => [...prev, record.id]);
+        }
+    };
 
     return (
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', minHeight: 'calc(100vh - 150px)' }}>
@@ -246,6 +321,35 @@ export default function CustomerPage() {
                     loading={loading}
                     scroll={{ x: 1000 }}
                     pagination={{ pageSize: 15 }}
+                    expandable={{
+                        expandedRowRender,
+                        rowExpandable: (record) => record.contracts && record.contracts.length > 0,
+                        expandIcon: ({ expanded, onExpand, record }) => {
+                            if (!record.contracts || record.contracts.length === 0) return <span style={{ width: 28, display: 'inline-block' }} />;
+                            return (
+                                <div
+                                    onClick={e => onExpand(record, e)}
+                                    style={{
+                                        width: '28px',
+                                        height: '28px',
+                                        borderRadius: '50%',
+                                        background: expanded ? '#fff1f0' : '#e6f7ff',
+                                        border: `1px solid ${expanded ? '#ffa39e' : '#91d5ff'}`,
+                                        color: expanded ? '#f5222d' : '#1890ff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                                        transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        margin: '0 auto'
+                                    }}
+                                >
+                                    {expanded ? <MinusOutlined style={{ fontSize: '14px' }} /> : <PlusOutlined style={{ fontSize: '14px' }} />}
+                                </div>
+                            );
+                        }
+                    }}
                 />
             </ConfigProvider>
 
@@ -255,6 +359,12 @@ export default function CustomerPage() {
                 initialValues={editingCustomer}
                 onCancel={() => setIsModalOpen(false)}
                 onOk={handleModalSubmit}
+            />
+
+            <CustomerDetailModal
+                open={isDetailModalOpen}
+                customer={viewingCustomer}
+                onCancel={() => setIsDetailModalOpen(false)}
             />
         </div>
     );

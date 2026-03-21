@@ -33,8 +33,10 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
                         }}
                     >
                         {children}
-                        <MainFooter />
                     </Content>
+                    <div style={{ padding: '0 32px' }}>
+                        <MainFooter />
+                    </div>
                 </Layout>
             </Layout>
         </AuthGuard>

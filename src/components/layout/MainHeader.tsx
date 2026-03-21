@@ -1,17 +1,31 @@
 'use client';
 
-import React, { useEffect, useRef } from 'react';
-import { Layout, Avatar, Space, Badge, Dropdown, MenuProps } from 'antd';
+import React, { useEffect, useRef, useState } from 'react';
+import { Layout, Avatar, Space, Badge, Dropdown, MenuProps, Image } from 'antd';
 import { MenuOutlined, BellOutlined, CaretDownOutlined, LogoutOutlined } from '@ant-design/icons';
 import gsap from 'gsap';
 import { useRouter } from 'next/navigation';
 import { authApi } from '@/utils/api';
+import { useSettings } from '@/components/provideres/SettingProvider';
 
 const { Header } = Layout;
 
 export default function MainHeader() {
     const headerRef = useRef<HTMLElement>(null);
     const router = useRouter();
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const data = await authApi.getMe();
+                setUser(data);
+            } catch (error) {
+                console.error('Không thể lấy thông tin user ở Header: ', error);
+            }
+        }
+        fetchUser();
+    }, []);
 
     const handleLogout = async () => {
         try {
@@ -85,7 +99,7 @@ export default function MainHeader() {
                             style={{ backgroundColor: '#fadb14' }}
                             src={`https://api.dicebear.com/7.x/notionists/svg?seed=Felix&backgroundColor=fadb14`}
                         />
-                        <span style={{ fontWeight: 600, fontSize: '14px' }}>Admin kế toán</span>
+                        <span style={{ fontWeight: 600, fontSize: '14px' }}>{user?.username || 'Loading...'}</span>
                         <CaretDownOutlined style={{ fontSize: '12px', color: '#8c8c8c' }} />
                     </Space>
                 </Dropdown>

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Form, Input, Select, Button, DatePicker, Row, Col, Tabs, Typography, Switch, message, ConfigProvider, Space, InputNumber } from 'antd';
+import React, { use, useState } from 'react';
+import { Form, Input, Select, Button, DatePicker, Row, Col, Tabs, Typography, Switch, message, ConfigProvider, Space, InputNumber, App } from 'antd';
 import { useRouter } from 'next/navigation';
 import { contractApi } from '@/utils/api';
 import dayjs from 'dayjs';
@@ -11,6 +11,7 @@ const { Option } = Select;
 const { TextArea } = Input;
 
 export default function ContractCreatePage() {
+    const { message } = App.useApp();
     const router = useRouter();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
@@ -76,6 +77,107 @@ export default function ContractCreatePage() {
                 },
             };
 
+            const services: any[] = [];
+
+            // Map logic for Info to Backend schema names
+            const mapWebInfo = (info: any) => info ? { chucNang: info.chucNang } : null;
+            const mapHostingInfo = (info: any) => info ? { duration: info.thoiGian, storage: info.dungLuong } : null;
+            const mapDomainInfo = (info: any) => info ? { domainName: info.diaChiTenMien, provider: info.donViDangKy, expiryDate: info.ngayHetHan ? info.ngayHetHan.toISOString() : null } : null;
+
+            if (formattedServiceDetails.web?.giaHopDong || formattedServiceDetails.webInfo?.chucNang) {
+                services.push({
+                    type: 'WEB',
+                    name: 'Thiết kế web',
+                    price: formattedServiceDetails.web?.giaHopDong || 0,
+                    vatRate: formattedServiceDetails.web?.vatRate || 0,
+                    totalAmount: formattedServiceDetails.web?.tongThanhToan || formattedServiceDetails.web?.tongGiaTri || formattedServiceDetails.web?.giaHopDong || 0,
+                    webInfo: mapWebInfo(formattedServiceDetails.webInfo)
+                });
+            }
+            if (formattedServiceDetails.webUpgrade?.giaTriHopDong || formattedServiceDetails.webUpgradeInfo?.chucNang) {
+                services.push({
+                    type: 'WEB',
+                    name: 'Nâng cấp web',
+                    price: formattedServiceDetails.webUpgrade?.giaTriHopDong || 0,
+                    totalAmount: formattedServiceDetails.webUpgrade?.giaTriHopDong || 0,
+                    webInfo: mapWebInfo(formattedServiceDetails.webUpgradeInfo)
+                });
+            }
+            if (formattedServiceDetails.hosting?.giaTriHopDong || formattedServiceDetails.hostingInfo) {
+                services.push({
+                    type: 'HOSTING',
+                    name: 'Hosting',
+                    price: formattedServiceDetails.hosting?.giaTriHopDong || 0,
+                    vatAmount: formattedServiceDetails.hosting?.vatAmount || 0,
+                    totalAmount: formattedServiceDetails.hosting?.hostVat || formattedServiceDetails.hosting?.giaTriHopDong || 0,
+                    hostingInfo: mapHostingInfo(formattedServiceDetails.hostingInfo)
+                });
+            }
+            if (formattedServiceDetails.hostingUpgrade?.giaTriHopDong || formattedServiceDetails.hostingUpgradeInfo) {
+                services.push({
+                    type: 'HOSTING',
+                    name: 'Nâng cấp Hosting',
+                    price: formattedServiceDetails.hostingUpgrade?.giaTriHopDong || 0,
+                    vatAmount: formattedServiceDetails.hostingUpgrade?.vatAmount || 0,
+                    totalAmount: formattedServiceDetails.hostingUpgrade?.hostVat || formattedServiceDetails.hostingUpgrade?.giaTriHopDong || 0,
+                    hostingInfo: mapHostingInfo(formattedServiceDetails.hostingUpgradeInfo)
+                });
+            }
+            if (formattedServiceDetails.domain?.giaTriHopDong || formattedServiceDetails.domainInfo) {
+                const domainPrice = formattedServiceDetails.domain?.giaTriHopDong || 0;
+                const domainVat = formattedServiceDetails.domain?.vatAmount || 0;
+                services.push({
+                    type: 'DOMAIN',
+                    name: 'Tên miền',
+                    price: domainPrice,
+                    vatAmount: domainVat,
+                    totalAmount: domainPrice + domainVat,
+                    domainInfo: mapDomainInfo(formattedServiceDetails.domainInfo)
+                });
+            }
+            if (formattedServiceDetails.mailServer?.giaTriHopDong) {
+                services.push({
+                    type: 'OTHER',
+                    name: 'Mail Server',
+                    price: formattedServiceDetails.mailServer?.giaTriHopDong || 0,
+                    vatAmount: formattedServiceDetails.mailServer?.vatAmount || 0,
+                    totalAmount: formattedServiceDetails.mailServer?.hostVat || formattedServiceDetails.mailServer?.giaTriHopDong || 0
+                });
+            }
+            if (formattedServiceDetails.ads?.giaTriHopDong || formattedServiceDetails.adsInfo) {
+                services.push({
+                    type: 'ADS_GG',
+                    name: 'Quảng cáo Ads',
+                    price: formattedServiceDetails.ads?.giaTriHopDong || 0,
+                    totalAmount: formattedServiceDetails.ads?.giaTriHopDong || 0,
+                    adsInfo: formattedServiceDetails.adsInfo || null
+                });
+            }
+            if (formattedServiceDetails.facebook?.giaTriHopDong || formattedServiceDetails.facebookInfo) {
+                services.push({
+                    type: 'ADS_FB',
+                    name: 'Quảng cáo Facebook',
+                    price: formattedServiceDetails.facebook?.giaTriHopDong || 0,
+                    totalAmount: formattedServiceDetails.facebook?.giaTriHopDong || 0,
+                    facebookInfo: formattedServiceDetails.facebookInfo || null
+                });
+            }
+
+            const paymentStages: any[] = [];
+            let paymentOrder = 1;
+
+            const dot1Amount = (formattedServiceDetails.webChiTiet?.dot1 || 0) + (formattedServiceDetails.webUpgrade?.dot1 || 0) + (formattedServiceDetails.ads?.dot1 || 0) + (formattedServiceDetails.facebook?.dot1 || 0);
+            if (dot1Amount > 0) paymentStages.push({ name: 'Lần 1', amount: dot1Amount, order: paymentOrder++, paidDate: null });
+
+            const dot2Amount = (formattedServiceDetails.webChiTiet?.dot2 || 0) + (formattedServiceDetails.webUpgrade?.treo50Percent || 0) + (formattedServiceDetails.ads?.dot2 || 0) + (formattedServiceDetails.facebook?.dot2 || 0);
+            if (dot2Amount > 0) paymentStages.push({ name: 'Lần 2', amount: dot2Amount, order: paymentOrder++, paidDate: null });
+
+            const banGiaoAmount = (formattedServiceDetails.webChiTiet?.banGiao || 0) + (formattedServiceDetails.webUpgrade?.banGiao || 0);
+            if (banGiaoAmount > 0) paymentStages.push({ name: 'Bàn giao', amount: banGiaoAmount, order: paymentOrder++, paidDate: null });
+
+            const contractEmployees = values.employeeId ? [{ employeeId: values.employeeId, isMain: true }] : [];
+            const parseId = (id: string) => id ? id : null;
+
             // Only send fields that exist in the Contracts Prisma schema
             const contractData: Record<string, any> = {
                 contractCode: values.contractCode,
@@ -85,19 +187,21 @@ export default function ContractCreatePage() {
                 receiptCode: values.receiptCode,
                 signDate: values.signDate ? values.signDate.toISOString() : null,
                 submissionDate: values.submissionDate ? values.submissionDate.toISOString() : null,
+                features: values.features,
+                note: values.note,
                 totalAmount: values.totalAmount,
                 vatAmount: values.vatAmount,
                 vatRate: values.vatRate,
                 paidAmount: values.paidAmount,
                 remainingAmount: values.remainingAmount,
-                serviceDetails: formattedServiceDetails,
-                paymentStages: values.paymentStages,
+                managerId: parseId(values.topRegionManager),
+                deptManagerId: parseId(values.topDeptManager),
+                seniorDeptManagerId: parseId(values.topSeniorManager),
+                services: services,
+                paymentStages: paymentStages,
+                contractEmployees: contractEmployees,
                 customerId: values.customerId,
                 regionCode: values.regionCode,
-                managerId: values.managerId,
-                deptManagerId: values.deptManagerId,
-                seniorDeptManagerId: values.seniorDeptManagerId,
-                employees: values.employeeId ? [{ employeeId: values.employeeId, isMain: true }] : [],
             };
 
             // Remove undefined keys
@@ -166,6 +270,13 @@ export default function ContractCreatePage() {
                 <Col xs={24} md={12} xl={6}>
                     <Form.Item name="displayRegion" label="KHU VỰC">
                         <Input placeholder="Khu vực" />
+                    </Form.Item>
+                </Col>
+            </Row>
+            <Row gutter={24} style={{ marginTop: '16px' }}>
+                <Col xs={24}>
+                    <Form.Item name="note" label="GHI CHÚ">
+                        <TextArea rows={2} placeholder="Nhập ghi chú" />
                     </Form.Item>
                 </Col>
             </Row>
@@ -432,12 +543,12 @@ export default function ContractCreatePage() {
         <div style={{ padding: '24px', background: '#fff' }}>
 
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG WEB" />
-            <Form.Item name={['serviceDetails', 'webInfo', 'chucNang']} label="CHỨC NĂNG" labelCol={{ span: 24 }}>
+            <Form.Item name="features" label="CHỨC NĂNG" labelCol={{ span: 24 }}>
                 <TextArea rows={3} placeholder="Chức năng" />
             </Form.Item>
 
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG NÂNG CẤP WEB" />
-            <Form.Item name={['serviceDetails', 'webUpgradeInfo', 'chucNang']} label="CHỨC NĂNG" labelCol={{ span: 24 }}>
+            <Form.Item name="features" label="CHỨC NĂNG" labelCol={{ span: 24 }}>
                 <TextArea rows={3} placeholder="Chức năng" />
             </Form.Item>
 
@@ -532,6 +643,8 @@ export default function ContractCreatePage() {
             </Row>
         </div>
     );
+
+
 
     const tabItems = [
         { key: 'tong-quan', label: 'Tổng quan', children: OverviewTab },
