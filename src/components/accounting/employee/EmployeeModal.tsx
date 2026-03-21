@@ -280,7 +280,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
 
                 <Row gutter={16}>
                     <Col span={12}>
-                        <Form.Item name="regionCode" label="Quản lý khu vực" rules={[{ required: true, message: 'Vui lòng chọn Khu vực!' }]}>
+                        <Form.Item name="regionCode" label={currentRoleCode === 'TRUONG_KHU_VUC' ? "Khu vực" : "Chọn Trưởng khu vực (Mã khu vực)"} rules={[{ required: true, message: 'Vui lòng chọn Khu vực!' }]}>
                             <Select
                                 placeholder="Chọn mã khu vực"
                                 mode={currentRoleCode === 'TRUONG_KHU_VUC' ? 'multiple' : undefined}
@@ -294,17 +294,9 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                             </Select>
                         </Form.Item>
                     </Col>
-                    {currentRoleCode !== 'TRUONG_KHU_VUC' && (
-                        <Col span={12}>
-                            <Form.Item name="areaManagerId" label="Trưởng khu vực" rules={[{ required: true, message: 'Vui lòng chọn Trưởng khu vực!' }]}>
-                                <Select placeholder="Chọn Trưởng khu vực" allowClear>
-                                    {filteredAreaManagers.map((m: any) => (
-                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    )}
+                    <Form.Item hidden name="areaManagerId">
+                        <Input />
+                    </Form.Item>
                     <Col span={12}>
                         <Form.Item name="roleId" label="Role ID (Quyền đăng nhập)">
                             <Input placeholder="Bỏ trống nếu không cấp quyền" />
@@ -319,7 +311,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                 )}
 
                 <Row gutter={16}>
-                    {['TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH'].includes(currentRoleCode || '') && (
+                    {['TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '') && (
                         <Col span={8}>
                             <Form.Item name="seniorDeptManagerId" label="Trưởng phòng cấp cao">
                                 <Select placeholder="Chọn Trưởng phòng cấp cao" allowClear>
@@ -330,7 +322,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                             </Form.Item>
                         </Col>
                     )}
-                    {['QUAN_LY', 'NHAN_VIEN_KINH_DOANH'].includes(currentRoleCode || '') && (
+                    {['QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '') && (
                         <Col span={8}>
                             <Form.Item name="deptManagerId" label="Trưởng phòng">
                                 <Select placeholder="Chọn Trưởng phòng" allowClear>
@@ -341,7 +333,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                             </Form.Item>
                         </Col>
                     )}
-                    {['NHAN_VIEN_KINH_DOANH'].includes(currentRoleCode || '') && (
+                    {['NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '') && (
                         <Col span={8}>
                             <Form.Item name="managerId" label="Quản lý trực tiếp">
                                 <Select placeholder="Chọn Quản lý" allowClear>

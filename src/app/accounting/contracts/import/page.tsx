@@ -19,7 +19,7 @@ const { Title, Text } = Typography;
 const { Dragger } = Upload;
 
 export default function ImportContractsPage() {
-    const { message } = App.useApp();
+    const { message, modal } = App.useApp();
     const [fileList, setFileList] = useState<any[]>([]);
     const [previewData, setPreviewData] = useState<any[]>([]);
     const [columns, setColumns] = useState<any[]>([]);
@@ -193,7 +193,7 @@ export default function ImportContractsPage() {
         setLoading(true);
         try {
             const res = await contractApi.importContracts(formData);
-            Modal.info({
+            modal.info({
                 title: 'Kết quả Import Hợp đồng',
                 width: 600,
                 content: (
@@ -206,9 +206,11 @@ export default function ImportContractsPage() {
                         {res.errors && res.errors.length > 0 && (
                             <div style={{ marginTop: '16px', background: '#fff1f0', padding: '12px', borderRadius: '4px', border: '1px solid #ffccc7' }}>
                                 <Text strong style={{ color: '#cf1322' }}>Danh sách lỗi:</Text>
-                                <ul style={{ marginTop: '8px', color: '#cf1322', paddingLeft: '20px', maxHeight: '200px', overflowY: 'auto' }}>
+                                <ul style={{ marginTop: '8px', color: '#cf1322', paddingLeft: '20px', maxHeight: '400px', overflowY: 'auto' }}>
                                     {res.errors.map((err: any, idx: number) => (
-                                        <li key={idx}>Dòng {err.row}: {err.error}</li>
+                                        <li key={idx} style={{ marginBottom: '8px' }}>
+                                            <strong>Dòng {err.row}</strong> (HĐ: {err.contractCode}): {err.message}
+                                        </li>
                                     ))}
                                 </ul>
                             </div>

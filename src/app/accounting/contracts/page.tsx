@@ -68,6 +68,17 @@ export default function ContractListPage() {
             dataIndex: 'title',
             key: 'title',
             width: 250,
+            render: (text: string, record: any) => {
+                const isShared = record.contractEmployees?.length > 1;
+                if (isShared) {
+                    return (
+                        <Text style={{ color: '#d32f2f', fontWeight: 'bold' }}>
+                            {text} (share)
+                        </Text>
+                    );
+                }
+                return text;
+            }
         },
         {
             title: 'Loại',

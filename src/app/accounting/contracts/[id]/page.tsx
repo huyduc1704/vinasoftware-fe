@@ -22,6 +22,7 @@ export default function ContractDetailPage() {
     const [showAccountingInfo, setShowAccountingInfo] = useState(true);
     // Store formatted values to apply to form AFTER it mounts
     const [formValues, setFormValues] = useState<any>(null);
+    const [isShared, setIsShared] = useState(false);
 
     // Employee lists for dropdowns
     const [managers, setManagers] = useState({
@@ -69,8 +70,12 @@ export default function ContractDetailPage() {
                 setPageLoading(true);
                 const data = await contractApi.getContractById(id);
                 if (data) {
+                    const isContractShared = data.contractEmployees?.length > 1;
+                    setIsShared(isContractShared);
                     const mainEmployee = data.contractEmployees?.find((ce: any) => ce.isMain) || data.contractEmployees?.[0];
+                    const subEmployee = data.contractEmployees?.find((ce: any) => !ce.isMain);
                     const emp = mainEmployee?.employee;
+                    const subEmp = subEmployee?.employee;
                     const customer = data.customer;
                     const sd = data.serviceDetails || {};
                     if (Object.keys(sd).length === 0 && Array.isArray(data.services)) {
@@ -129,12 +134,17 @@ export default function ContractDetailPage() {
                         signDate: data.signDate ? dayjs(data.signDate) : null,
                         displayEmpCode: emp?.employeeCode || '',
                         displayEmpName: emp?.fullName || '',
+                        displayDept1Id: emp?.deptManagerId || '',
+                        displayEmpCode2: subEmp?.employeeCode || '',
+                        displayEmpName2: subEmp?.fullName || '',
+                        displayDept2Id: subEmp?.deptManagerId || '',
                         employeeId: mainEmployee?.employeeId || '',
                         // Map manager IDs to form fields
                         topRegionManager: data.managerId || '',
                         topSeniorManager: data.seniorDeptManagerId || '',
                         topDeptManager: data.deptManagerId || '',
                         displayRegion: data.regionCode || '',
+                        displayRegion2: data.regionCode || '',
                         serviceDetails: {
                             ...sd,
                             adsInfo: {
@@ -170,9 +180,18 @@ export default function ContractDetailPage() {
     // Apply form values AFTER pageLoading=false so the form is guaranteed to be mounted
     useEffect(() => {
         if (!pageLoading && formValues) {
-            form.setFieldsValue(formValues);
+            const mappedValues = { ...formValues };
+            if (managers.dept.length > 0) {
+                if (formValues.displayDept1Id) {
+                    mappedValues.displayDept = managers.dept.find((m: any) => m.id === formValues.displayDept1Id)?.fullName || '';
+                }
+                if (formValues.displayDept2Id) {
+                    mappedValues.displayDept2 = managers.dept.find((m: any) => m.id === formValues.displayDept2Id)?.fullName || '';
+                }
+            }
+            form.setFieldsValue(mappedValues);
         }
-    }, [pageLoading, formValues]);
+    }, [pageLoading, formValues, managers]);
 
 
 
@@ -438,11 +457,20 @@ export default function ContractDetailPage() {
                 <Col xs={24} md={12} xl={6}><Form.Item name="receiptCode" label="SỐ PHIẾU THU"><Input placeholder="Nhập số phiếu thu" /></Form.Item></Col>
             </Row>
             <Row gutter={24} style={{ marginTop: '16px' }}>
-                <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpCode" label="MÃ NHÂN VIÊN"><Input placeholder="Mã NV" /></Form.Item></Col>
-                <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpName" label="TÊN NVKD"><Input placeholder="Tên NVKD" /></Form.Item></Col>
-                <Col xs={24} md={12} xl={6}><Form.Item name="displayDept" label="PHÒNG"><Input placeholder="Phòng" /></Form.Item></Col>
+                <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpCode" label={isShared ? "MÃ NV 1" : "MÃ NHÂN VIÊN"}><Input placeholder="Mã NV" /></Form.Item></Col>
+                <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpName" label={isShared ? "TÊN NVKD 1" : "TÊN NVKD"}><Input placeholder="Tên NVKD" /></Form.Item></Col>
+                <Col xs={24} md={12} xl={6}><Form.Item name="displayDept" label={isShared ? "PHÒNG" : "PHÒNG"}><Input placeholder="Phòng" /></Form.Item></Col>
                 <Col xs={24} md={12} xl={6}><Form.Item name="displayRegion" label="KHU VỰC"><Input placeholder="Khu vực" /></Form.Item></Col>
             </Row>
+
+            {isShared && (
+                <Row gutter={24} style={{ marginTop: '16px' }}>
+                    <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpCode2" label="MÃ NV 2 (SHARE)"><Input placeholder="Mã NV 2" /></Form.Item></Col>
+                    <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpName2" label="TÊN NVKD 2 (SHARE)"><Input placeholder="Tên NVKD 2" /></Form.Item></Col>
+                    <Col xs={24} md={12} xl={6}><Form.Item name="displayDept2" label="PHÒNG"><Input placeholder="Phòng" /></Form.Item></Col>
+                    <Col xs={24} md={12} xl={6}><Form.Item name="displayRegion2" label="KHU VỰC 2"><Input placeholder="Khu vực 2" /></Form.Item></Col>
+                </Row>
+            )}
             <Row gutter={24} style={{ marginTop: '16px' }}>
                 <Col xs={24}><Form.Item name="note" label="GHI CHÚ"><TextArea rows={2} placeholder="Nhập ghi chú" /></Form.Item></Col>
             </Row>
