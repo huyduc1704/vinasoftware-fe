@@ -27,10 +27,10 @@ const items: MenuProps['items'] = [
             { key: 'management', label: 'Quản lý' },
             { key: 'employee', label: 'Nhân viên' },
             { key: 'accountant', label: 'Kế toán' },
-            { key: 'import_employee', label: 'Import nhân viên' },
             { key: 'import_contracts', label: 'Import kế toán' },
-            { key: 'export_contracts_renewals', label: 'Export HĐ gia hạn' },
-            { key: 'export_customer_care', label: 'Export HĐ CSKH' }
+            // { key: 'import_employee', label: 'Import nhân viên' },
+            // { key: 'export_contracts_renewals', label: 'Export HĐ gia hạn' },
+            // { key: 'export_customer_care', label: 'Export HĐ CSKH' }
         ],
     },
     {
@@ -69,11 +69,11 @@ const items: MenuProps['items'] = [
             { key: 'customer_account', label: 'Tài khoản khách' },
         ]
     },
-    {
-        key: 'setting',
-        icon: <SettingOutlined />,
-        label: 'Thiết lập thông tin',
-    },
+    // {
+    //     key: 'setting',
+    //     icon: <SettingOutlined />,
+    //     label: 'Thiết lập thông tin',
+    // },
 ];
 
 export default function MainSider() {

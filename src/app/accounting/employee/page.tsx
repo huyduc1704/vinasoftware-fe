@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, Popconfirm, Tag, Avatar, ConfigProvider, Input, Tooltip, Select, Row, Col, App } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons';
+import { Typography, Button, Table, Space, Popconfirm, Tag, Avatar, ConfigProvider, Input, Tooltip, Select, Row, Col, App, Modal } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined, EyeOutlined, DownloadOutlined, FallOutlined, ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import { useSearchParams } from 'next/navigation';
@@ -31,6 +31,18 @@ export default function EmployeePage() {
 
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [viewingEmployee, setViewingEmployee] = useState<any>(null);
+
+    // Demote state
+    const [isDemoteModalOpen, setIsDemoteModalOpen] = useState(false);
+    const [demoteRecord, setDemoteRecord] = useState<any>(null);
+    const [selectedDemoteRole, setSelectedDemoteRole] = useState<string | null>(null);
+    const [isDemoteLoading, setIsDemoteLoading] = useState(false);
+
+    // Promote state
+    const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
+    const [promoteRecord, setPromoteRecord] = useState<any>(null);
+    const [selectedPromoteRole, setSelectedPromoteRole] = useState<string | null>(null);
+    const [isPromoteLoading, setIsPromoteLoading] = useState(false);
 
     // Pagination & Search state
     const [page, setPage] = useState(1);
@@ -101,7 +113,7 @@ export default function EmployeePage() {
         if (areaManagersList.length > 0) return;
         setIsAreaLoading(true);
         try {
-            const area = await employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC', limit: 100 });
+            const area = await employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC', limit: 1000 });
             setAreaManagersList(area?.data || area || []);
         } finally {
             setIsAreaLoading(false);
@@ -112,7 +124,7 @@ export default function EmployeePage() {
         if (seniorDeptManagersList.length > 0) return;
         setIsSeniorLoading(true);
         try {
-            const senior = await employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO', limit: 100 });
+            const senior = await employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO', limit: 1000 });
             setSeniorDeptManagersList(senior?.data || senior || []);
         } finally {
             setIsSeniorLoading(false);
@@ -123,7 +135,7 @@ export default function EmployeePage() {
         if (deptManagersList.length > 0) return;
         setIsDeptLoading(true);
         try {
-            const dept = await employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG', limit: 100 });
+            const dept = await employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG', limit: 1000 });
             setDeptManagersList(dept?.data || dept || []);
         } finally {
             setIsDeptLoading(false);
@@ -134,7 +146,7 @@ export default function EmployeePage() {
         if (managersList.length > 0) return;
         setIsMgrLoading(true);
         try {
-            const mgr = await employeeApi.getEmployees({ roleCode: 'QUAN_LY', limit: 100 });
+            const mgr = await employeeApi.getEmployees({ roleCode: 'QUAN_LY', limit: 1000 });
             setManagersList(mgr?.data || mgr || []);
         } finally {
             setIsMgrLoading(false);
@@ -214,6 +226,96 @@ export default function EmployeePage() {
     const handleEditClick = (record: any) => {
         setEditingEmployee(record);
         setIsModalOpen(true);
+    };
+
+    const getAvailableDemoteRoles = (currentRole: string) => {
+        const hierarchy = [
+            { code: 'TRUONG_KHU_VUC', name: 'Trưởng khu vực' },
+            { code: 'TRUONG_PHONG_CAP_CAO', name: 'Trưởng phòng cấp cao' },
+            { code: 'TRUONG_PHONG', name: 'Trưởng phòng' },
+            { code: 'QUAN_LY', name: 'Quản lý' },
+            { code: 'NVKD', name: 'Nhân viên kinh doanh' }
+        ];
+
+        // Find index of current role
+        let index = hierarchy.findIndex(r => r.code === currentRole);
+        // Special fallback
+        if (currentRole === 'NHAN_VIEN_KINH_DOANH') index = 4;
+
+        if (index === -1) return []; // Not found or already lowest
+
+        // Return all roles that are BELOW this role (higher index)
+        return hierarchy.slice(index + 1);
+    };
+
+    const handleOpenDemoteModal = (record: any) => {
+        setDemoteRecord(record);
+        setSelectedDemoteRole(null);
+        setIsDemoteModalOpen(true);
+    };
+
+    const handleDemoteSubmit = async () => {
+        if (!demoteRecord || !selectedDemoteRole) {
+            message.warning('Vui lòng chọn chức vụ mới');
+            return;
+        }
+
+        setIsDemoteLoading(true);
+        try {
+            await employeeApi.updateEmployee(demoteRecord.id, { roleCode: selectedDemoteRole });
+            message.success('Giáng chức thành công');
+            setIsDemoteModalOpen(false);
+            fetchEmployees();
+        } catch (error: any) {
+            message.error(error.message || 'Lỗi khi giáng chức nhân viên');
+        } finally {
+            setIsDemoteLoading(false);
+        }
+    };
+
+    const getAvailablePromoteRoles = (currentRole: string) => {
+        const hierarchy = [
+            { code: 'TRUONG_KHU_VUC', name: 'Trưởng khu vực' },
+            { code: 'TRUONG_PHONG_CAP_CAO', name: 'Trưởng phòng cấp cao' },
+            { code: 'TRUONG_PHONG', name: 'Trưởng phòng' },
+            { code: 'QUAN_LY', name: 'Quản lý' },
+            { code: 'NVKD', name: 'Nhân viên kinh doanh' }
+        ];
+
+        // Find index of current role
+        let index = hierarchy.findIndex(r => r.code === currentRole);
+        // Special fallback
+        if (currentRole === 'NHAN_VIEN_KINH_DOANH') index = 4;
+
+        if (index <= 0) return []; // Not found or already highest
+
+        // Return all roles that are ABOVE this role (lower index)
+        return hierarchy.slice(0, index).reverse(); // Reverse so immediate higher role is first, or keep order. Let's keep original order.
+    };
+
+    const handleOpenPromoteModal = (record: any) => {
+        setPromoteRecord(record);
+        setSelectedPromoteRole(null);
+        setIsPromoteModalOpen(true);
+    };
+
+    const handlePromoteSubmit = async () => {
+        if (!promoteRecord || !selectedPromoteRole) {
+            message.warning('Vui lòng chọn chức vụ mới');
+            return;
+        }
+
+        setIsPromoteLoading(true);
+        try {
+            await employeeApi.updateEmployee(promoteRecord.id, { roleCode: selectedPromoteRole });
+            message.success('Thăng chức thành công');
+            setIsPromoteModalOpen(false);
+            fetchEmployees();
+        } catch (error: any) {
+            message.error(error.message || 'Lỗi khi thăng chức nhân viên');
+        } finally {
+            setIsPromoteLoading(false);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -372,6 +474,24 @@ export default function EmployeePage() {
                         icon={<EditOutlined style={{ color: '#1890ff' }} />}
                         onClick={() => handleEditClick(record)}
                     />
+                    {record.roleCode !== 'TRUONG_KHU_VUC' && (
+                        <Tooltip title="Thăng chức">
+                            <Button
+                                type="text"
+                                icon={<ArrowUpOutlined style={{ color: '#52c41a' }} />}
+                                onClick={() => handleOpenPromoteModal(record)}
+                            />
+                        </Tooltip>
+                    )}
+                    {record.roleCode !== 'NHAN_VIEN_KINH_DOANH' && record.roleCode !== 'NVKD' && (
+                        <Tooltip title="Giáng chức">
+                            <Button
+                                type="text"
+                                icon={<ArrowDownOutlined style={{ color: '#faad14' }} />}
+                                onClick={() => handleOpenDemoteModal(record)}
+                            />
+                        </Tooltip>
+                    )}
                     <Popconfirm
                         title="Xóa nhân viên"
                         description="Bạn có chắc chắn muốn xóa nhân viên này?"
@@ -431,70 +551,72 @@ export default function EmployeePage() {
             </div>
 
             {/* Filter Dropdowns */}
-            <div style={{ marginBottom: '24px' }}>
-                <Row gutter={16}>
-                    <Col span={6}>
-                        <Select
-                            style={{ width: '100%' }}
-                            placeholder="Chọn Trưởng vùng"
-                            allowClear
-                            value={selectedAreaManager}
-                            onChange={(val) => { setSelectedAreaManager(val); setPage(1); }}
-                            onOpenChange={(open) => open && fetchAreaManagers()}
-                            loading={isAreaLoading}
-                            options={areaManagersList.map((m: any) => ({
-                                label: m.fullName,
-                                value: m.id
-                            }))}
-                            onSearch={handleSearch}
-                            showSearch
+            {(!currentRoleCode || currentRoleCode === 'NHAN_VIEN_KINH_DOANH' || currentRoleCode === 'NVKD') && (
+                <div style={{ marginBottom: '24px' }}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Select
+                                style={{ width: '100%' }}
+                                placeholder="Chọn Trưởng vùng"
+                                allowClear
+                                value={selectedAreaManager}
+                                onChange={(val) => { setSelectedAreaManager(val); setPage(1); }}
+                                onOpenChange={(open) => open && fetchAreaManagers()}
+                                loading={isAreaLoading}
+                                options={areaManagersList.map((m: any) => ({
+                                    label: m.fullName,
+                                    value: m.id
+                                }))}
+                                onSearch={handleSearch}
+                                showSearch
 
-                        />
-                    </Col>
-                    <Col span={6}>
-                        <Select
-                            style={{ width: '100%' }}
-                            placeholder="Chọn Trưởng phòng cấp cao"
-                            allowClear
-                            value={selectedSeniorDeptManager}
-                            onChange={(val) => { setSelectedSeniorDeptManager(val); setPage(1); }}
-                            onOpenChange={(open) => open && fetchSeniorDeptManagers()}
-                            loading={isSeniorLoading}
-                            options={seniorDeptManagersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
-                            showSearch
-                            optionFilterProp="label"
-                        />
-                    </Col>
-                    <Col span={6}>
-                        <Select
-                            style={{ width: '100%' }}
-                            placeholder="Chọn Trưởng phòng"
-                            allowClear
-                            value={selectedDeptManager}
-                            onChange={(val) => { setSelectedDeptManager(val); setPage(1); }}
-                            onOpenChange={(open) => open && fetchDeptManagers()}
-                            loading={isDeptLoading}
-                            options={deptManagersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
-                            showSearch
-                            optionFilterProp="label"
-                        />
-                    </Col>
-                    <Col span={6}>
-                        <Select
-                            style={{ width: '100%' }}
-                            placeholder="Chọn Quản lý"
-                            allowClear
-                            value={selectedManager}
-                            onChange={(val) => { setSelectedManager(val); setPage(1); }}
-                            onOpenChange={(open) => open && fetchManagers()}
-                            loading={isMgrLoading}
-                            options={managersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
-                            showSearch
-                            optionFilterProp="label"
-                        />
-                    </Col>
-                </Row>
-            </div>
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <Select
+                                style={{ width: '100%' }}
+                                placeholder="Chọn Trưởng phòng cấp cao"
+                                allowClear
+                                value={selectedSeniorDeptManager}
+                                onChange={(val) => { setSelectedSeniorDeptManager(val); setPage(1); }}
+                                onOpenChange={(open) => open && fetchSeniorDeptManagers()}
+                                loading={isSeniorLoading}
+                                options={seniorDeptManagersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
+                                showSearch
+                                optionFilterProp="label"
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <Select
+                                style={{ width: '100%' }}
+                                placeholder="Chọn Trưởng phòng"
+                                allowClear
+                                value={selectedDeptManager}
+                                onChange={(val) => { setSelectedDeptManager(val); setPage(1); }}
+                                onOpenChange={(open) => open && fetchDeptManagers()}
+                                loading={isDeptLoading}
+                                options={deptManagersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
+                                showSearch
+                                optionFilterProp="label"
+                            />
+                        </Col>
+                        <Col span={6}>
+                            <Select
+                                style={{ width: '100%' }}
+                                placeholder="Chọn Quản lý"
+                                allowClear
+                                value={selectedManager}
+                                onChange={(val) => { setSelectedManager(val); setPage(1); }}
+                                onOpenChange={(open) => open && fetchManagers()}
+                                loading={isMgrLoading}
+                                options={managersList.map((m: any) => ({ label: m.fullName, value: m.id }))}
+                                showSearch
+                                optionFilterProp="label"
+                            />
+                        </Col>
+                    </Row>
+                </div>
+            )}
 
             <ConfigProvider
                 theme={{
@@ -553,6 +675,64 @@ export default function EmployeePage() {
                 employee={viewingEmployee}
                 onClose={() => setIsDetailModalOpen(false)}
             />
+
+            <Modal
+                title="Giáng chức nhân viên"
+                open={isDemoteModalOpen}
+                onOk={handleDemoteSubmit}
+                onCancel={() => setIsDemoteModalOpen(false)}
+                confirmLoading={isDemoteLoading}
+                okText="Xác nhận"
+                cancelText="Hủy"
+            >
+                {demoteRecord && (
+                    <div style={{ padding: '10px 0' }}>
+                        <p style={{ marginBottom: 16 }}>
+                            Bạn đang giáng chức nhân viên <strong>{demoteRecord.fullName}</strong>.
+                            Vui lòng chọn chức vụ mới:
+                        </p>
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn chức vụ"
+                            value={selectedDemoteRole}
+                            onChange={(val) => setSelectedDemoteRole(val)}
+                            options={getAvailableDemoteRoles(demoteRecord.roleCode).map(r => ({
+                                label: r.name,
+                                value: r.code
+                            }))}
+                        />
+                    </div>
+                )}
+            </Modal>
+
+            <Modal
+                title="Thăng chức nhân viên"
+                open={isPromoteModalOpen}
+                onOk={handlePromoteSubmit}
+                onCancel={() => setIsPromoteModalOpen(false)}
+                confirmLoading={isPromoteLoading}
+                okText="Xác nhận"
+                cancelText="Hủy"
+            >
+                {promoteRecord && (
+                    <div style={{ padding: '10px 0' }}>
+                        <p style={{ marginBottom: 16 }}>
+                            Bạn đang thăng chức nhân viên <strong>{promoteRecord.fullName}</strong>.
+                            Vui lòng chọn chức vụ mới:
+                        </p>
+                        <Select
+                            style={{ width: '100%' }}
+                            placeholder="Chọn chức vụ"
+                            value={selectedPromoteRole}
+                            onChange={(val) => setSelectedPromoteRole(val)}
+                            options={getAvailablePromoteRoles(promoteRecord.roleCode).map(r => ({
+                                label: r.name,
+                                value: r.code
+                            }))}
+                        />
+                    </div>
+                )}
+            </Modal>
         </div>
     );
 }

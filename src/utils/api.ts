@@ -16,7 +16,7 @@ function addRefreshSubscriber(callback: (isSuccess: boolean) => void) {
  * Helper function to handle fetch responses and include credentials (HttpOnly cookies)
  */
 
-async function fetchWithCredentials(endpoint: string, options: RequestInit = {}) {
+async function fetchWithCredentials(endpoint: string, options: RequestInit = {}, isRetry: boolean = false) {
     const url = `${API_BASE_URL}${endpoint}`;
 
     const headers: Record<string, string> = {
@@ -37,7 +37,7 @@ async function fetchWithCredentials(endpoint: string, options: RequestInit = {})
 
     let response = await fetch(url, defaultOptions);
 
-    if (response.status === 401 && endpoint !== '/auth/refresh-token' && endpoint !== '/auth/login') {
+    if (response.status === 401 && endpoint !== '/auth/refresh-token' && endpoint !== '/auth/login' && !isRetry) {
         if (!isRefreshing) {
             isRefreshing = true;
 
@@ -53,7 +53,7 @@ async function fetchWithCredentials(endpoint: string, options: RequestInit = {})
                     onRefreshed(true); // Nhắc các API đang bị treo hãy chạy lại
 
                     // Chạy lại ngay chính cái request ban đầu vừa fail
-                    return fetchWithCredentials(endpoint, options);
+                    return fetchWithCredentials(endpoint, options, true);
                 } else {
                     // Nếu refresh token cũng ngỏm -> Bắt người dùng đăng nhập lại
                     isRefreshing = false;
@@ -74,7 +74,7 @@ async function fetchWithCredentials(endpoint: string, options: RequestInit = {})
             return new Promise((resolve, reject) => {
                 addRefreshSubscriber((isSuccess) => {
                     if (isSuccess) {
-                        resolve(fetchWithCredentials(endpoint, options)); // Gọi lại request sau khi có token mới
+                        resolve(fetchWithCredentials(endpoint, options, true)); // Gọi lại request sau khi có token mới
                     } else {
                         reject(new Error('Chưa thể làm mới phiên đăng nhập'));
                     }

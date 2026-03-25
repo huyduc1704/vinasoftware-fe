@@ -23,6 +23,7 @@ export default function ContractDetailPage() {
     // Store formatted values to apply to form AFTER it mounts
     const [formValues, setFormValues] = useState<any>(null);
     const [isShared, setIsShared] = useState(false);
+    const [paymentDates, setPaymentDates] = useState<any>({});
 
     // Employee lists for dropdowns
     const [managers, setManagers] = useState({
@@ -38,11 +39,11 @@ export default function ContractDetailPage() {
         const fetchAllRoles = async () => {
             try {
                 const [area, senior, dept, mgmt, staff] = await Promise.all([
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC' }),
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO' }),
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG' }),
-                    employeeApi.getEmployees({ roleCode: 'QUAN_LY' }),
-                    employeeApi.getEmployees({ roleCode: 'NHAN_VIEN_KINH_DOANH' })
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC', limit: 1000 }),
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO', limit: 1000 }),
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG', limit: 1000 }),
+                    employeeApi.getEmployees({ roleCode: 'QUAN_LY', limit: 1000 }),
+                    employeeApi.getEmployees({ roleCode: 'NVKD', limit: 1000 })
                 ]);
                 const getData = (res: any) => {
                     if (Array.isArray(res)) return res;
@@ -78,6 +79,7 @@ export default function ContractDetailPage() {
                     const subEmp = subEmployee?.employee;
                     const customer = data.customer;
                     const sd = data.serviceDetails || {};
+                    const pDates: any = {};
                     if (Object.keys(sd).length === 0 && Array.isArray(data.services)) {
                         data.services.forEach((s: any) => {
                             const numericTotal = s.total || s.totalAmount ? Number(s.total || s.totalAmount) : undefined;
@@ -85,13 +87,44 @@ export default function ContractDetailPage() {
                             const numericVat = s.vatAmount !== null && s.vatAmount !== undefined ? Number(s.vatAmount) : undefined;
                             const numericVatRate = s.vatRate !== null && s.vatRate !== undefined ? Number(s.vatRate) : undefined;
 
+                            const serviceReceipts = data.receipts?.filter((r: any) => r.serviceId === s.id) || [];
+                            const getAmt = (name: string) => {
+                                const r = serviceReceipts.find((req: any) => req.name?.toLowerCase() === name.toLowerCase());
+                                return r && r.amount ? Number(r.amount) : undefined;
+                            };
+                            const getDate = (name: string) => {
+                                const r = serviceReceipts.find((req: any) => req.name?.toLowerCase() === name.toLowerCase());
+                                return r && r.paidDate ? dayjs(r.paidDate) : null;
+                            };
+
                             if (s.type === 'WEB') {
                                 if (s.name?.toLowerCase().includes('nâng cấp') && !s.name?.toLowerCase().includes('thiết kế')) {
-                                    sd.webUpgrade = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, ...s.webInfo };
+                                    sd.webUpgrade = {
+                                        giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal,
+                                        dot1: getAmt('lần 1'),
+                                        treo50Percent: getAmt('treo 50%') || getAmt('lần 2'), // fallback to lần 2 if data is old
+                                        banGiao: getAmt('bàn giao'),
+                                        ...s.webInfo
+                                    };
                                     sd.webUpgradeInfo = { chucNang: s.webInfo?.chucNang };
+                                    pDates.webUpgrade = {
+                                        dot1: getDate('lần 1'),
+                                        dot2: getDate('treo 50%') || getDate('lần 2'),
+                                        banGiao: getDate('bàn giao')
+                                    };
                                 } else {
                                     sd.web = { giaHopDong: numericPrice !== undefined ? numericPrice : numericTotal, vatRate: numericVatRate, tongThanhToan: numericTotal, tongGiaTri: numericTotal, ...s.webInfo };
                                     sd.webInfo = { chucNang: s.webInfo?.chucNang };
+                                    sd.webChiTiet = {
+                                        dot1: getAmt('lần 1'),
+                                        dot2: getAmt('lần 2'),
+                                        banGiao: getAmt('bàn giao')
+                                    };
+                                    pDates.web = {
+                                        dot1: getDate('lần 1'),
+                                        dot2: getDate('lần 2'),
+                                        banGiao: getDate('bàn giao')
+                                    };
                                 }
                             } else if (s.type === 'HOSTING') {
                                 if (s.name?.toLowerCase().includes('nâng cấp')) {
@@ -107,22 +140,32 @@ export default function ContractDetailPage() {
                             } else if (s.type === 'OTHER') {
                                 sd.mailServer = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, vatAmount: numericVat, hostVat: numericTotal };
                             } else if (s.type === 'ADS_GG') {
-                                sd.ads = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, ...s.adsInfo };
+                                sd.ads = {
+                                    giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal,
+                                    dot1: getAmt('lần 1'),
+                                    dot2: getAmt('lần 2'),
+                                    ...s.adsInfo
+                                };
                                 sd.adsInfo = { ...s.adsInfo, ngayKichHoat: s.adsInfo?.ngayKichHoat ? dayjs(s.adsInfo.ngayKichHoat) : null, ngayHetHan: s.adsInfo?.ngayHetHan ? dayjs(s.adsInfo.ngayHetHan) : null };
+                                pDates.ads = {
+                                    dot1: getDate('lần 1'),
+                                    dot2: getDate('lần 2')
+                                };
                             } else if (s.type === 'ADS_FB') {
-                                sd.facebook = { giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal, ...s.facebookInfo };
+                                sd.facebook = {
+                                    giaTriHopDong: numericPrice !== undefined ? numericPrice : numericTotal,
+                                    dot1: getAmt('lần 1'),
+                                    dot2: getAmt('lần 2'),
+                                    ...s.facebookInfo
+                                };
                                 sd.facebookInfo = { ...s.facebookInfo, ngayKichHoat: s.facebookInfo?.ngayKichHoat ? dayjs(s.facebookInfo.ngayKichHoat) : null };
+                                pDates.facebook = {
+                                    dot1: getDate('lần 1'),
+                                    dot2: getDate('lần 2')
+                                };
                             }
                         });
-                        if (Array.isArray(data.paymentStages) && data.paymentStages.length > 0) {
-                            if (!sd.webChiTiet) sd.webChiTiet = {};
-                            const stage1 = data.paymentStages.find((p: any) => p.name === 'Lần 1');
-                            if (stage1) sd.webChiTiet.dot1 = Number(stage1.amount);
-                            const stage2 = data.paymentStages.find((p: any) => p.name === 'Lần 2');
-                            if (stage2) sd.webChiTiet.dot2 = Number(stage2.amount);
-                            const stage3 = data.paymentStages.find((p: any) => p.name === 'Bàn giao' || p.name?.toLowerCase() === 'bàn giao');
-                            if (stage3) sd.webChiTiet.banGiao = Number(stage3.amount);
-                        }
+                        setPaymentDates(pDates);
                     }
 
                     // Store formatted values in state — will be applied to form in a
@@ -145,6 +188,8 @@ export default function ContractDetailPage() {
                         topDeptManager: data.deptManagerId || '',
                         displayRegion: data.regionCode || '',
                         displayRegion2: data.regionCode || '',
+                        // receiptCode đã chuyển sang bảng Receipt — đọc từ receipt đầu tiên
+                        receiptCode: data.receipts?.[0]?.receiptCode || data.receiptCode || '',
                         serviceDetails: {
                             ...sd,
                             adsInfo: {
@@ -165,6 +210,11 @@ export default function ContractDetailPage() {
                                 ngaySinh: customer?.dob ? dayjs(customer.dob) : null,
                                 diaChi: customer?.address || '',
                             },
+                            // Payment dates stored in form for DatePicker binding
+                            webDates: pDates.web || {},
+                            webUpgradeDates: pDates.webUpgrade || {},
+                            adsDates: pDates.ads || {},
+                            facebookDates: pDates.facebook || {},
                         },
                     });
                 }
@@ -265,6 +315,8 @@ export default function ContractDetailPage() {
             const mergedServiceDetails = { ...existingSDClean, ...formattedServiceDetails };
 
             const services: any[] = [];
+            const receipts: any[] = [];
+            let paymentOrder = 1;
 
             // Map logic for Info to Backend schema names
             const mapWebInfo = (info: any) => info ? { chucNang: info.chucNang } : null;
@@ -272,7 +324,9 @@ export default function ContractDetailPage() {
             const mapDomainInfo = (info: any) => info ? { domainName: info.diaChiTenMien, provider: info.donViDangKy, expiryDate: info.ngayHetHan ? (typeof info.ngayHetHan.toISOString === 'function' ? info.ngayHetHan.toISOString() : info.ngayHetHan) : null } : null;
 
             if (mergedServiceDetails.web?.giaHopDong || mergedServiceDetails.webInfo?.chucNang) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'WEB',
                     name: 'Thiết kế web',
                     price: mergedServiceDetails.web?.giaHopDong || 0,
@@ -280,15 +334,34 @@ export default function ContractDetailPage() {
                     totalAmount: mergedServiceDetails.web?.tongThanhToan || mergedServiceDetails.web?.tongGiaTri || mergedServiceDetails.web?.giaHopDong || 0,
                     webInfo: mapWebInfo(mergedServiceDetails.webInfo)
                 });
+
+                const dot1Amount = mergedServiceDetails.webChiTiet?.dot1 || 0;
+                const dot1Date = sd.webDates?.dot1 ? (typeof sd.webDates.dot1.toISOString === 'function' ? sd.webDates.dot1.toISOString() : sd.webDates.dot1) : null;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: dot1Date });
+                const dot2Amount = mergedServiceDetails.webChiTiet?.dot2 || 0;
+                const dot2Date = sd.webDates?.dot2 ? (typeof sd.webDates.dot2.toISOString === 'function' ? sd.webDates.dot2.toISOString() : sd.webDates.dot2) : null;
+                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: dot2Date });
+                const banGiaoAmount = mergedServiceDetails.webChiTiet?.banGiao || 0;
+                const banGiaoDate = sd.webDates?.banGiao ? (typeof sd.webDates.banGiao.toISOString === 'function' ? sd.webDates.banGiao.toISOString() : sd.webDates.banGiao) : null;
+                if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: banGiaoDate });
             }
             if (mergedServiceDetails.webUpgrade?.giaTriHopDong || mergedServiceDetails.webUpgradeInfo?.chucNang) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'WEB',
                     name: 'Nâng cấp web',
                     price: mergedServiceDetails.webUpgrade?.giaTriHopDong || 0,
                     totalAmount: mergedServiceDetails.webUpgrade?.giaTriHopDong || 0,
                     webInfo: mapWebInfo(mergedServiceDetails.webUpgradeInfo)
                 });
+
+                const dot1Amount = mergedServiceDetails.webUpgrade?.dot1 || 0;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const dot2Amount = mergedServiceDetails.webUpgrade?.treo50Percent || 0;
+                if (dot2Amount > 0) receipts.push({ name: 'Treo 50%', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const banGiaoAmount = mergedServiceDetails.webUpgrade?.banGiao || 0;
+                if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
             if (mergedServiceDetails.hosting?.giaTriHopDong || mergedServiceDetails.hostingInfo) {
                 services.push({
@@ -332,43 +405,59 @@ export default function ContractDetailPage() {
                 });
             }
             if (mergedServiceDetails.ads?.giaTriHopDong || mergedServiceDetails.adsInfo) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'ADS_GG',
                     name: 'Quảng cáo Ads',
                     price: mergedServiceDetails.ads?.giaTriHopDong || 0,
                     totalAmount: mergedServiceDetails.ads?.giaTriHopDong || 0,
                     adsInfo: mergedServiceDetails.adsInfo || null
                 });
+                const dot1Amount = mergedServiceDetails.ads?.dot1 || 0;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const dot2Amount = mergedServiceDetails.ads?.dot2 || 0;
+                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
             if (mergedServiceDetails.facebook?.giaTriHopDong || mergedServiceDetails.facebookInfo) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'ADS_FB',
                     name: 'Quảng cáo Facebook',
                     price: mergedServiceDetails.facebook?.giaTriHopDong || 0,
                     totalAmount: mergedServiceDetails.facebook?.giaTriHopDong || 0,
                     facebookInfo: mergedServiceDetails.facebookInfo || null
                 });
+                const dot1Amount = mergedServiceDetails.facebook?.dot1 || 0;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const dot2Amount = mergedServiceDetails.facebook?.dot2 || 0;
+                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
 
-            const paymentStages: any[] = [];
-            let paymentOrder = 1;
-
-            const dot1Amount = (mergedServiceDetails.webChiTiet?.dot1 || 0) + (mergedServiceDetails.webUpgrade?.dot1 || 0) + (mergedServiceDetails.ads?.dot1 || 0) + (mergedServiceDetails.facebook?.dot1 || 0);
-            if (dot1Amount > 0) paymentStages.push({ name: 'Lần 1', amount: dot1Amount, order: paymentOrder++, paidDate: null });
-
-            const dot2Amount = (mergedServiceDetails.webChiTiet?.dot2 || 0) + (mergedServiceDetails.webUpgrade?.treo50Percent || 0) + (mergedServiceDetails.ads?.dot2 || 0) + (mergedServiceDetails.facebook?.dot2 || 0);
-            if (dot2Amount > 0) paymentStages.push({ name: 'Lần 2', amount: dot2Amount, order: paymentOrder++, paidDate: null });
-
-            const banGiaoAmount = (mergedServiceDetails.webChiTiet?.banGiao || 0) + (mergedServiceDetails.webUpgrade?.banGiao || 0);
-            if (banGiaoAmount > 0) paymentStages.push({ name: 'Bàn giao', amount: banGiaoAmount, order: paymentOrder++, paidDate: null });
-
-            const contractEmployees = values.employeeId ? [{ employeeId: values.employeeId, isMain: true }] : [];
-            const parseId = (id: string) => id ? id : null;
+            // Build employees from form fields (displayEmpCode / displayEmpCode2)
+            // BE will resolve the code to actual UUID if needed
+            let contractEmployees: { employeeId: string; isMain: boolean }[] | undefined = undefined;
+            const empCode1 = values.displayEmpCode?.trim();
+            const empCode2 = values.displayEmpCode2?.trim();
+            if (empCode1) {
+                contractEmployees = [{ employeeId: empCode1, isMain: true }];
+                if (empCode2) {
+                    contractEmployees.push({ employeeId: empCode2, isMain: false });
+                }
+            } else if (formValues?.contractEmployees?.length > 0) {
+                // Fallback: keep existing employees if display fields were not changed
+                contractEmployees = formValues.contractEmployees.map((ce: any) => ({
+                    employeeId: ce.employeeId || ce.employee?.id,
+                    isMain: ce.isMain ?? true,
+                })).filter((e: any) => !!e.employeeId);
+            }
+            const parseId = (id: any) => id === undefined ? undefined : (id ? id : null);
 
             // Only send fields that exist in the Contracts Prisma schema
             const contractData: Record<string, any> = {
                 contractCode: values.contractCode,
-                title: values.title,
+                title: values.contractCode ? `Hợp đồng ${values.contractCode}` : '',
                 type: values.type,
                 status: values.status,
                 receiptCode: values.receiptCode,
@@ -382,13 +471,13 @@ export default function ContractDetailPage() {
                 paidAmount: values.paidAmount,
                 remainingAmount: values.remainingAmount,
                 services: services,
-                paymentStages: paymentStages,
+                receipts: receipts,
                 customerId: values.customerId,
-                regionCode: values.regionCode,
+                regionCode: values.displayRegion,
                 managerId: parseId(values.topRegionManager),
                 deptManagerId: parseId(values.topDeptManager),
                 seniorDeptManagerId: parseId(values.topSeniorManager),
-                contractEmployees: contractEmployees,
+                employees: contractEmployees,
             };
 
             // Remove undefined keys to avoid sending null for unchanged fields
@@ -451,9 +540,19 @@ export default function ContractDetailPage() {
     const OverviewTab = (
         <div style={{ padding: '24px', background: '#fff', minHeight: '400px' }}>
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={6}><Form.Item name="contractCode" label="SỐ HỢP ĐỒNG"><Input placeholder="Nhập số hợp đồng" /></Form.Item></Col>
-                <Col xs={24} md={12} xl={6}><Form.Item name="submissionDate" label="NGÀY NỘP"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
-                <Col xs={24} md={12} xl={6}><Form.Item name="signDate" label="NGÀY KÝ HỢP ĐỒNG"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                <Col xs={24} md={12} xl={4}><Form.Item name="contractCode" label="SỐ HỢP ĐỒNG"><Input placeholder="Nhập số hợp đồng" /></Form.Item></Col>
+                <Col xs={24} md={12} xl={4}>
+                    <Form.Item name="type" label="LOẠI HỢP ĐỒNG">
+                        <Select placeholder="Chọn loại hợp đồng">
+                            <Select.Option value="WEB">WEB</Select.Option>
+                            <Select.Option value="HOSTING">HOSTING</Select.Option>
+                            <Select.Option value="DOMAIN">DOMAIN</Select.Option>
+                            <Select.Option value="ADS">ADS</Select.Option>
+                        </Select>
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={12} xl={5}><Form.Item name="submissionDate" label="NGÀY NỘP"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
+                <Col xs={24} md={12} xl={5}><Form.Item name="signDate" label="NGÀY KÝ HỢP ĐỒNG"><DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" /></Form.Item></Col>
                 <Col xs={24} md={12} xl={6}><Form.Item name="receiptCode" label="SỐ PHIẾU THU"><Input placeholder="Nhập số phiếu thu" /></Form.Item></Col>
             </Row>
             <Row gutter={24} style={{ marginTop: '16px' }}>
@@ -515,30 +614,68 @@ export default function ContractDetailPage() {
             </Row>
             <SectionTitle title="CHI TIẾT" />
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'webChiTiet', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'webChiTiet', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'webChiTiet', 'banGiao']} label="BÀN GIAO" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'webChiTiet', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    <Form.Item name={['serviceDetails', 'webDates', 'dot1']} label="NGÀY ĐỢT 1" labelCol={{ span: 24 }} style={{ marginTop: -8 }}>
+                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày nộp" />
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'webChiTiet', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    <Form.Item name={['serviceDetails', 'webDates', 'dot2']} label="NGÀY ĐỢT 2" labelCol={{ span: 24 }} style={{ marginTop: -8 }}>
+                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày nộp" />
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'webChiTiet', 'banGiao']} label="BÀN GIAO" labelCol={{ span: 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    <Form.Item name={['serviceDetails', 'webDates', 'banGiao']} label="NGÀY BÀN GIAO" labelCol={{ span: 24 }} style={{ marginTop: -8 }}>
+                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày nộp" />
+                    </Form.Item>
+                </Col>
             </Row>
             <SectionTitle title="NÂNG CẤP WEB" />
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={6}><Form.Item name={['serviceDetails', 'webUpgrade', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={6}><Form.Item name={['serviceDetails', 'webUpgrade', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={6}><Form.Item name={['serviceDetails', 'webUpgrade', 'treo50Percent']} label="TREO 50% NÂNG CẤP" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={6}><Form.Item name={['serviceDetails', 'webUpgrade', 'banGiao']} label="BÀN GIAO" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
+                <Col xs={24} md={12} xl={6}>
+                    <Form.Item name={['serviceDetails', 'webUpgrade', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={12} xl={6}>
+                    <Form.Item name={['serviceDetails', 'webUpgrade', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }} style={{ marginBottom: paymentDates?.webUpgrade?.dot1 ? 4 : 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    {paymentDates?.webUpgrade?.dot1 && (
+                        <div style={{ marginBottom: 24 }}>
+                            <Text style={{ fontSize: 13, color: '#52c41a' }}>Đã nộp ngày: {paymentDates?.webUpgrade?.dot1.format('DD/MM/YYYY')}</Text>
+                        </div>
+                    )}
+                </Col>
+                <Col xs={24} md={12} xl={6}>
+                    <Form.Item name={['serviceDetails', 'webUpgrade', 'treo50Percent']} label="TREO 50% NÂNG CẤP" labelCol={{ span: 24 }} style={{ marginBottom: paymentDates?.webUpgrade?.dot2 ? 4 : 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    {paymentDates?.webUpgrade?.dot2 && (
+                        <div style={{ marginBottom: 24 }}>
+                            <Text style={{ fontSize: 13, color: '#52c41a' }}>Đã nộp ngày: {paymentDates?.webUpgrade?.dot2.format('DD/MM/YYYY')}</Text>
+                        </div>
+                    )}
+                </Col>
+                <Col xs={24} md={12} xl={6}>
+                    <Form.Item name={['serviceDetails', 'webUpgrade', 'banGiao']} label="BÀN GIAO" labelCol={{ span: 24 }} style={{ marginBottom: paymentDates?.webUpgrade?.banGiao ? 4 : 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    {paymentDates?.webUpgrade?.banGiao && (
+                        <div style={{ marginBottom: 24 }}>
+                            <Text style={{ fontSize: 13, color: '#52c41a' }}>Đã nộp ngày: {paymentDates?.webUpgrade?.banGiao.format('DD/MM/YYYY')}</Text>
+                        </div>
+                    )}
+                </Col>
             </Row>
         </div>
     );
@@ -602,27 +739,59 @@ export default function ContractDetailPage() {
         <div style={{ padding: '24px', background: '#fff' }}>
             <SectionTitle title="QUẢNG CÁO ADS" />
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'ads', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'ads', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'ads', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }} style={{ marginBottom: paymentDates?.ads?.dot1 ? 4 : 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    {paymentDates?.ads?.dot1 && (
+                        <div style={{ marginBottom: 24 }}>
+                            <Text style={{ fontSize: 13, color: '#52c41a' }}>Đã nộp ngày: {paymentDates?.ads?.dot1.format('DD/MM/YYYY')}</Text>
+                        </div>
+                    )}
+                </Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'ads', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }} style={{ marginBottom: paymentDates?.ads?.dot2 ? 4 : 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    {paymentDates?.ads?.dot2 && (
+                        <div style={{ marginBottom: 24 }}>
+                            <Text style={{ fontSize: 13, color: '#52c41a' }}>Đã nộp ngày: {paymentDates?.ads?.dot2.format('DD/MM/YYYY')}</Text>
+                        </div>
+                    )}
+                </Col>
             </Row>
             <SectionTitle title="QUẢNG CÁO FACEBOOK" />
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
-                <Col xs={24} md={12} xl={8}><Form.Item name={['serviceDetails', 'facebook', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
-                    <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(value) => value?.replace(/[^\d]/g, '') as any} />
-                </Form.Item></Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'facebook', 'giaTriHopDong']} label="GIÁ TRỊ HỢP ĐỒNG" labelCol={{ span: 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'facebook', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }} style={{ marginBottom: paymentDates?.facebook?.dot1 ? 4 : 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(v) => `${v}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(v) => v?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    {paymentDates?.facebook?.dot1 && (
+                        <div style={{ marginBottom: 24 }}>
+                            <Text style={{ fontSize: 13, color: '#52c41a' }}>Đã nộp ngày: {paymentDates?.facebook?.dot1.format('DD/MM/YYYY')}</Text>
+                        </div>
+                    )}
+                </Col>
+                <Col xs={24} md={12} xl={8}>
+                    <Form.Item name={['serviceDetails', 'facebook', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }} style={{ marginBottom: paymentDates?.facebook?.dot2 ? 4 : 24 }}>
+                        <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(value) => value?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    {paymentDates?.facebook?.dot2 && (
+                        <div style={{ marginBottom: 24 }}>
+                            <Text style={{ fontSize: 13, color: '#52c41a' }}>Đã nộp ngày: {paymentDates?.facebook?.dot2.format('DD/MM/YYYY')}</Text>
+                        </div>
+                    )}
+                </Col>
             </Row>
         </div>
     );
@@ -649,11 +818,17 @@ export default function ContractDetailPage() {
         <div style={{ padding: '24px', background: '#fff' }}>
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG WEB" />
             <Form.Item name="features" label="CHỨC NĂNG" labelCol={{ span: 24 }}>
-                <TextArea rows={3} placeholder="Chức năng" />
+                <TextArea
+                    autoSize={{ minRows: 3, maxRows: 8 }}
+                    placeholder="Chức năng"
+                />
             </Form.Item>
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG NÂNG CẤP WEB" />
-            <Form.Item name="features" label="CHỨC NĂNG" labelCol={{ span: 24 }}>
-                <TextArea rows={3} placeholder="Chức năng" />
+            <Form.Item name={['serviceDetails', 'webUpgradeInfo', 'chucNang']} label="CHỨC NĂNG" labelCol={{ span: 24 }}>
+                <TextArea
+                    autoSize={{ minRows: 3, maxRows: 8 }}
+                    placeholder="Chức năng"
+                />
             </Form.Item>
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG HOSTING" />
             <Row gutter={24}>
@@ -717,48 +892,6 @@ export default function ContractDetailPage() {
                         <Button style={{ background: '#fce254', color: '#000', borderColor: '#fce254' }} onClick={() => form.resetFields()}>Làm mới</Button>
                         <Button type="primary" danger style={{ background: '#ff4d4f' }} onClick={() => router.push('/accounting/contracts')}>Thoát</Button>
                     </Space>
-                </div>
-
-                <div style={{ background: '#fff', padding: '20px 24px 0 24px', borderRadius: '8px 8px 0 0', marginTop: '16px' }}>
-                    <Row gutter={16}>
-                        <Col xs={24} md={12} xl={4}>
-                            <Form.Item label="Trưởng khu vực" name="topRegionManager" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
-                                    {managers.area.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="Trưởng phòng cấp cao" name="topSeniorManager" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
-                                    {managers.senior.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="Trưởng phòng" name="topDeptManager" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
-                                    {managers.dept.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="PP kinh doanh" name="topMgmt" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
-                                    {managers.mgmt.map(m => <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>)}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="Nhân viên" name="employeeId" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" allowClear showSearch optionFilterProp="label">
-                                    {[...managers.staff, ...managers.mgmt, ...managers.dept, ...managers.senior].map(m => (
-                                        <Option key={m.id} value={m.id} label={m.fullName}>{m.fullName}</Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    </Row>
                 </div>
 
                 <ConfigProvider theme={{ components: { Tabs: { itemSelectedColor: '#ff4d4f', itemHoverColor: '#ff4d4f' } } }}>

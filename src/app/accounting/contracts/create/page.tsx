@@ -78,6 +78,8 @@ export default function ContractCreatePage() {
             };
 
             const services: any[] = [];
+            const receipts: any[] = [];
+            let paymentOrder = 1;
 
             // Map logic for Info to Backend schema names
             const mapWebInfo = (info: any) => info ? { chucNang: info.chucNang } : null;
@@ -85,7 +87,9 @@ export default function ContractCreatePage() {
             const mapDomainInfo = (info: any) => info ? { domainName: info.diaChiTenMien, provider: info.donViDangKy, expiryDate: info.ngayHetHan ? info.ngayHetHan.toISOString() : null } : null;
 
             if (formattedServiceDetails.web?.giaHopDong || formattedServiceDetails.webInfo?.chucNang) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'WEB',
                     name: 'Thiết kế web',
                     price: formattedServiceDetails.web?.giaHopDong || 0,
@@ -93,15 +97,29 @@ export default function ContractCreatePage() {
                     totalAmount: formattedServiceDetails.web?.tongThanhToan || formattedServiceDetails.web?.tongGiaTri || formattedServiceDetails.web?.giaHopDong || 0,
                     webInfo: mapWebInfo(formattedServiceDetails.webInfo)
                 });
+                const dot1Amount = formattedServiceDetails.webChiTiet?.dot1 || 0;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const dot2Amount = formattedServiceDetails.webChiTiet?.dot2 || 0;
+                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const banGiaoAmount = formattedServiceDetails.webChiTiet?.banGiao || 0;
+                if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
             if (formattedServiceDetails.webUpgrade?.giaTriHopDong || formattedServiceDetails.webUpgradeInfo?.chucNang) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'WEB',
                     name: 'Nâng cấp web',
                     price: formattedServiceDetails.webUpgrade?.giaTriHopDong || 0,
                     totalAmount: formattedServiceDetails.webUpgrade?.giaTriHopDong || 0,
                     webInfo: mapWebInfo(formattedServiceDetails.webUpgradeInfo)
                 });
+                const dot1Amount = formattedServiceDetails.webUpgrade?.dot1 || 0;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const dot2Amount = formattedServiceDetails.webUpgrade?.treo50Percent || 0;
+                if (dot2Amount > 0) receipts.push({ name: 'Treo 50%', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const banGiaoAmount = formattedServiceDetails.webUpgrade?.banGiao || 0;
+                if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
             if (formattedServiceDetails.hosting?.giaTriHopDong || formattedServiceDetails.hostingInfo) {
                 services.push({
@@ -145,43 +163,67 @@ export default function ContractCreatePage() {
                 });
             }
             if (formattedServiceDetails.ads?.giaTriHopDong || formattedServiceDetails.adsInfo) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'ADS_GG',
                     name: 'Quảng cáo Ads',
                     price: formattedServiceDetails.ads?.giaTriHopDong || 0,
                     totalAmount: formattedServiceDetails.ads?.giaTriHopDong || 0,
                     adsInfo: formattedServiceDetails.adsInfo || null
                 });
+                const dot1Amount = formattedServiceDetails.ads?.dot1 || 0;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const dot2Amount = formattedServiceDetails.ads?.dot2 || 0;
+                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
             if (formattedServiceDetails.facebook?.giaTriHopDong || formattedServiceDetails.facebookInfo) {
+                const id = crypto.randomUUID();
                 services.push({
+                    id,
                     type: 'ADS_FB',
                     name: 'Quảng cáo Facebook',
                     price: formattedServiceDetails.facebook?.giaTriHopDong || 0,
                     totalAmount: formattedServiceDetails.facebook?.giaTriHopDong || 0,
                     facebookInfo: formattedServiceDetails.facebookInfo || null
                 });
+                const dot1Amount = formattedServiceDetails.facebook?.dot1 || 0;
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                const dot2Amount = formattedServiceDetails.facebook?.dot2 || 0;
+                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
 
-            const paymentStages: any[] = [];
-            let paymentOrder = 1;
+            let finalEmployees: any[] = [];
+            if (values.employees && Array.isArray(values.employees)) {
+                values.employees.forEach((emp: any, index: number) => {
+                    if (emp && emp.employeeCode) {
+                        finalEmployees.push({
+                            employeeId: emp.employeeCode, // Backend hỗ trợ map từ EmployeeCode sang ID thông qua biến này
+                            isMain: index === 0
+                        });
+                    }
+                });
+            }
 
-            const dot1Amount = (formattedServiceDetails.webChiTiet?.dot1 || 0) + (formattedServiceDetails.webUpgrade?.dot1 || 0) + (formattedServiceDetails.ads?.dot1 || 0) + (formattedServiceDetails.facebook?.dot1 || 0);
-            if (dot1Amount > 0) paymentStages.push({ name: 'Lần 1', amount: dot1Amount, order: paymentOrder++, paidDate: null });
+            const parseId = (id: any) => id === undefined ? undefined : (id ? id : null);
 
-            const dot2Amount = (formattedServiceDetails.webChiTiet?.dot2 || 0) + (formattedServiceDetails.webUpgrade?.treo50Percent || 0) + (formattedServiceDetails.ads?.dot2 || 0) + (formattedServiceDetails.facebook?.dot2 || 0);
-            if (dot2Amount > 0) paymentStages.push({ name: 'Lần 2', amount: dot2Amount, order: paymentOrder++, paidDate: null });
-
-            const banGiaoAmount = (formattedServiceDetails.webChiTiet?.banGiao || 0) + (formattedServiceDetails.webUpgrade?.banGiao || 0);
-            if (banGiaoAmount > 0) paymentStages.push({ name: 'Bàn giao', amount: banGiaoAmount, order: paymentOrder++, paidDate: null });
-
-            const contractEmployees = values.employeeId ? [{ employeeId: values.employeeId, isMain: true }] : [];
-            const parseId = (id: string) => id ? id : null;
+            // Xử lý dữ liệu khách hàng
+            let reqCustomerData = undefined;
+            if (!values.customerId && customerInfo && customerInfo.tenKhachHang) {
+                reqCustomerData = {
+                    fullName: customerInfo.tenKhachHang,
+                    representative: customerInfo.daiDien || undefined,
+                    taxCode: customerInfo.maSoThue || undefined,
+                    phone: customerInfo.soDienThoai || undefined,
+                    email: customerInfo.email || undefined,
+                    address: customerInfo.diaChi || undefined,
+                };
+            }
 
             // Only send fields that exist in the Contracts Prisma schema
             const contractData: Record<string, any> = {
                 contractCode: values.contractCode,
-                title: values.title,
+                title: values.contractCode ? `Hợp đồng ${values.contractCode}` : '',
                 type: values.type,
                 status: values.status,
                 receiptCode: values.receiptCode,
@@ -198,9 +240,10 @@ export default function ContractCreatePage() {
                 deptManagerId: parseId(values.topDeptManager),
                 seniorDeptManagerId: parseId(values.topSeniorManager),
                 services: services,
-                paymentStages: paymentStages,
-                contractEmployees: contractEmployees,
+                receipts: receipts,
+                employees: finalEmployees.length > 0 ? finalEmployees : undefined,
                 customerId: values.customerId,
+                customerData: reqCustomerData,
                 regionCode: values.regionCode,
             };
 
@@ -229,17 +272,27 @@ export default function ContractCreatePage() {
     const OverviewTab = (
         <div style={{ padding: '24px', background: '#fff', minHeight: '400px' }}>
             <Row gutter={24}>
-                <Col xs={24} md={12} xl={6}>
+                <Col xs={24} md={12} xl={4}>
                     <Form.Item name="contractCode" label="SỐ HỢP ĐỒNG">
                         <Input placeholder="Nhập số hợp đồng" />
                     </Form.Item>
                 </Col>
-                <Col xs={24} md={12} xl={6}>
+                <Col xs={24} md={12} xl={4}>
+                    <Form.Item name="type" label="LOẠI HỢP ĐỒNG" initialValue="WEB">
+                        <Select placeholder="Chọn loại hợp đồng">
+                            <Option value="WEB">WEB</Option>
+                            <Option value="HOSTING">HOSTING</Option>
+                            <Option value="DOMAIN">DOMAIN</Option>
+                            <Option value="ADS">ADS</Option>
+                        </Select>
+                    </Form.Item>
+                </Col>
+                <Col xs={24} md={12} xl={5}>
                     <Form.Item name="submissionDate" label="NGÀY NỘP">
                         <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
                     </Form.Item>
                 </Col>
-                <Col xs={24} md={12} xl={6}>
+                <Col xs={24} md={12} xl={5}>
                     <Form.Item name="signDate" label="NGÀY KÝ HỢP ĐỒNG">
                         <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
                     </Form.Item>
@@ -251,28 +304,47 @@ export default function ContractCreatePage() {
                 </Col>
             </Row>
 
-            <Row gutter={24} style={{ marginTop: '16px' }}>
-                <Col xs={24} md={12} xl={6}>
-                    <Form.Item name="displayEmpCode" label="MÃ NHÂN VIÊN">
-                        <Input placeholder="Mã NV" />
-                    </Form.Item>
-                </Col>
-                <Col xs={24} md={12} xl={6}>
-                    <Form.Item name="displayEmpName" label="TÊN NVKD">
-                        <Input placeholder="Tên NVKD" />
-                    </Form.Item>
-                </Col>
-                <Col xs={24} md={12} xl={6}>
-                    <Form.Item name="displayDept" label="PHÒNG">
-                        <Input placeholder="Phòng" />
-                    </Form.Item>
-                </Col>
-                <Col xs={24} md={12} xl={6}>
-                    <Form.Item name="displayRegion" label="KHU VỰC">
-                        <Input placeholder="Khu vực" />
-                    </Form.Item>
-                </Col>
-            </Row>
+            <Form.List name="employees">
+                {(fields, { add, remove }) => (
+                    <div style={{ marginTop: '16px' }}>
+                        {fields.map(({ key, name, ...restField }, index) => (
+                            <div key={key} style={{ padding: '16px', background: '#fafafa', borderRadius: '8px', marginBottom: '16px', position: 'relative' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                                    <Text strong>{index === 0 ? 'NHÂN VIÊN KINH DOANH CHÍNH' : `NHÂN VIÊN SHARE ${index}`}</Text>
+                                    {index > 0 && (
+                                        <Button type="text" danger onClick={() => remove(name)}>Xoá</Button>
+                                    )}
+                                </div>
+                                <Row gutter={24}>
+                                    <Col xs={24} md={12} xl={6}>
+                                        <Form.Item {...restField} name={[name, 'employeeCode']} label="MÃ NHÂN VIÊN ">
+                                            <Input placeholder="Mã NV" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12} xl={6}>
+                                        <Form.Item {...restField} name={[name, 'displayEmpName']} label="TÊN NVKD">
+                                            <Input placeholder="Tên NVKD (tuỳ chọn hiển thị)" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12} xl={6}>
+                                        <Form.Item {...restField} name={[name, 'displayDept']} label="PHÒNG">
+                                            <Input placeholder="Phòng" />
+                                        </Form.Item>
+                                    </Col>
+                                    <Col xs={24} md={12} xl={6}>
+                                        <Form.Item {...restField} name={[name, 'displayRegion']} label="KHU VỰC">
+                                            <Input placeholder="Khu vực" />
+                                        </Form.Item>
+                                    </Col>
+                                </Row>
+                            </div>
+                        ))}
+                        <Button type="dashed" onClick={() => add()} block style={{ marginBottom: '16px' }}>
+                            + Thêm nhân viên
+                        </Button>
+                    </div>
+                )}
+            </Form.List>
             <Row gutter={24} style={{ marginTop: '16px' }}>
                 <Col xs={24}>
                     <Form.Item name="note" label="GHI CHÚ">
@@ -548,7 +620,7 @@ export default function ContractCreatePage() {
             </Form.Item>
 
             <SectionTitle title="THÔNG TIN HỢP ĐỒNG NÂNG CẤP WEB" />
-            <Form.Item name="features" label="CHỨC NĂNG" labelCol={{ span: 24 }}>
+            <Form.Item name={['serviceDetails', 'webUpgradeInfo', 'chucNang']} label="CHỨC NĂNG" labelCol={{ span: 24 }}>
                 <TextArea rows={3} placeholder="Chức năng" />
             </Form.Item>
 
@@ -658,7 +730,7 @@ export default function ContractCreatePage() {
 
     return (
         <div style={{ background: '#f5f5f5', padding: 'clamp(8px, 2vw, 24px)', borderRadius: '8px', minHeight: 'calc(100vh - 100px)' }}>
-            <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={handleValuesChange}>
+            <Form form={form} layout="vertical" onFinish={onFinish} onValuesChange={handleValuesChange} initialValues={{ employees: [{}] }}>
                 {/* Header Sub-Nav */}
                 <div className="form-header-bar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', background: '#fff', padding: '16px 24px', borderRadius: '8px' }}>
                     <Text style={{ fontWeight: 600, fontSize: '16px' }}>Quản lý kế toán / Kế toán / <span style={{ fontWeight: 800 }}>Chỉnh sửa kế toán</span></Text>
@@ -667,39 +739,6 @@ export default function ContractCreatePage() {
                         <Button style={{ background: '#fce254', color: '#000', borderColor: '#fce254' }} onClick={() => form.resetFields()}>Làm mới</Button>
                         <Button type="primary" danger style={{ background: '#ff4d4f' }} onClick={() => router.push('/accounting/contracts')}>Thoát</Button>
                     </Space>
-                </div>
-
-                {/* Top Filters / Assignments */}
-                <div style={{ background: '#fff', padding: '20px 24px 0 24px', borderRadius: '8px 8px 0 0', marginTop: '16px' }}>
-                    <Row gutter={16}>
-                        <Col xs={24} md={12} xl={4}>
-                            <Form.Item label="Trưởng khu vực" name="topRegionManager" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="Trưởng phòng cấp cao" name="topSeniorManager" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="Trưởng phòng" name="topDeptManager" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="PP kinh doanh" name="topMgmt" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --" />
-                            </Form.Item>
-                        </Col>
-                        <Col xs={24} md={12} xl={5}>
-                            <Form.Item label="Nhân viên" name="employeeId" labelCol={{ span: 24 }}>
-                                <Select placeholder="-- Chọn danh mục --">
-                                    <Option value="emp-1">NV Nguyễn Văn A</Option>
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    </Row>
                 </div>
 
                 {/* Main Tabs */}

@@ -1,20 +1,32 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider, Badge, App } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import React, { useEffect, useState, useMemo } from 'react';
+import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider, Badge, App, Input, Select, DatePicker } from 'antd';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter } from 'next/navigation';
 import { contractApi } from '@/utils/api';
 import dayjs from 'dayjs';
+import ContractDetailModal from '@/components/contracts/ContractDetailModal';
 
 const { Title, Text } = Typography;
+const { RangePicker } = DatePicker;
 
 export default function ContractListPage() {
     const { message } = App.useApp();
     const router = useRouter();
     const [contracts, setContracts] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
+    const [searchText, setSearchText] = useState('');
+    const [selectedType, setSelectedType] = useState<string | null>(null);
+    const [dateRange, setDateRange] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
+    const [viewContractId, setViewContractId] = useState<string | null>(null);
+    const [viewReceiptId, setViewReceiptId] = useState<string | null>(null);
+
+    const contractTypes = React.useMemo(() => {
+        const types = Array.from(new Set(contracts.map(c => c.type).filter(Boolean)));
+        return types.map(t => ({ label: String(t), value: String(t) }));
+    }, [contracts]);
 
     const fetchContracts = async () => {
         try {
@@ -50,6 +62,62 @@ export default function ContractListPage() {
         }
     };
 
+    const flattenedContracts = React.useMemo(() => {
+        let flattened: any[] = [];
+        contracts.forEach(contract => {
+            if (contract.receipts && contract.receipts.length > 0) {
+                const isMulti = contract.receipts.length > 1;
+                contract.receipts.forEach((receipt: any, index: number) => {
+                    flattened.push({
+                        ...contract,
+                        uniqueKey: `${contract.id}_${receipt.id || index}`,
+                        originalId: contract.id,
+                        displayContractCode: isMulti ? `${contract.contractCode} - ${receipt.name}` : contract.contractCode,
+                        isMultiInstallment: isMulti,
+                        displayDate: receipt.paidDate || contract.submissionDate,
+                        displayAmount: receipt.amount != null ? receipt.amount : contract.totalAmount
+                    });
+                });
+            } else {
+                flattened.push({
+                    ...contract,
+                    uniqueKey: contract.id,
+                    originalId: contract.id,
+                    displayContractCode: contract.contractCode,
+                    isMultiInstallment: false,
+                    displayDate: contract.submissionDate,
+                    displayAmount: contract.totalAmount
+                });
+            }
+        });
+
+        let result = flattened;
+
+        if (searchText) {
+            const lowerSearch = searchText.toLowerCase();
+            result = result.filter(item =>
+                item.contractCode?.toLowerCase().includes(lowerSearch) ||
+                item.regionCode?.toLowerCase().includes(lowerSearch)
+            );
+        }
+
+        if (selectedType) {
+            result = result.filter(item => item.type === selectedType);
+        }
+
+        if (dateRange && dateRange[0] && dateRange[1]) {
+            const start = dateRange[0].startOf('day');
+            const end = dateRange[1].endOf('day');
+            result = result.filter(item => {
+                if (!item.displayDate) return false;
+                const d = dayjs(item.displayDate);
+                return (d.isAfter(start) || d.isSame(start)) && (d.isBefore(end) || d.isSame(end));
+            });
+        }
+
+        return result;
+    }, [contracts, searchText, selectedType, dateRange]);
+
     const columns: ColumnsType<any> = [
         {
             title: 'STT',
@@ -59,9 +127,19 @@ export default function ContractListPage() {
         },
         {
             title: 'Mã hợp đồng',
-            dataIndex: 'contractCode',
-            key: 'contractCode',
+            dataIndex: 'displayContractCode',
+            key: 'displayContractCode',
             width: 150,
+            render: (text: string, record: any) => {
+                if (record.isMultiInstallment) {
+                    return (
+                        <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>
+                            {text}
+                        </Text>
+                    );
+                }
+                return text;
+            }
         },
         {
             title: 'Tên hợp đồng',
@@ -87,16 +165,23 @@ export default function ContractListPage() {
             width: 100,
         },
         {
+            title: 'Khu vực',
+            dataIndex: 'regionCode',
+            key: 'regionCode',
+            width: 100,
+            render: (text: string) => text || '-',
+        },
+        {
             title: 'Ngày nộp',
-            dataIndex: 'submissionDate',
-            key: 'submissionDate',
+            dataIndex: 'displayDate',
+            key: 'displayDate',
             width: 150,
             render: (date: string) => date ? dayjs(date).format('DD/MM/YYYY') : '-',
         },
         {
             title: 'Tổng giá trị',
-            dataIndex: 'totalAmount',
-            key: 'totalAmount',
+            dataIndex: 'displayAmount',
+            key: 'displayAmount',
             width: 150,
             render: (val: any) => {
                 if (!val) return '-';
@@ -138,18 +223,26 @@ export default function ContractListPage() {
         {
             title: 'Thao tác',
             key: 'action',
-            width: 120,
+            width: 150,
             render: (_, record) => (
-                <Space size="middle">
+                <Space size="small">
+                    <Button
+                        type="text"
+                        icon={<EyeOutlined style={{ color: '#52c41a' }} />}
+                        onClick={() => {
+                            setViewContractId(record.originalId);
+                            setViewReceiptId(record.isMultiInstallment ? record.uniqueKey.split('_')[1] : null);
+                        }}
+                    />
                     <Button
                         type="text"
                         icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                        onClick={() => router.push(`/accounting/contracts/${record.id}`)}
+                        onClick={() => router.push(`/accounting/contracts/${record.originalId}`)}
                     />
                     <Popconfirm
                         title="Xóa hợp đồng"
                         description="Bạn có chắc chắn muốn xóa hợp đồng này?"
-                        onConfirm={() => handleDelete(record.id)}
+                        onConfirm={() => handleDelete(record.originalId)}
                         okText="Có"
                         cancelText="Không"
                     >
@@ -166,14 +259,37 @@ export default function ContractListPage() {
                 <Title level={4} style={{ margin: 0 }}>
                     Danh sách kế toán (Hợp đồng)
                 </Title>
-                <Button
-                    type="primary"
-                    icon={<PlusOutlined />}
-                    onClick={() => router.push('/accounting/contracts/create')}
-                    style={{ background: '#d32f2f', borderColor: '#d32f2f' }}
-                >
-                    Thêm kế toán mới
-                </Button>
+                <Space>
+                    <Input.Search
+                        placeholder="Tìm kiếm mã HĐ, khu vực..."
+                        allowClear
+                        value={searchText}
+                        onChange={(e) => setSearchText(e.target.value)}
+                        style={{ width: 250 }}
+                    />
+                    <Select
+                        placeholder="Loại hợp đồng"
+                        allowClear
+                        value={selectedType}
+                        onChange={(val) => setSelectedType(val)}
+                        options={contractTypes}
+                        style={{ width: 150 }}
+                    />
+                    <RangePicker
+                        format="DD/MM/YYYY"
+                        value={dateRange as any}
+                        onChange={(dates: any) => setDateRange(dates)}
+                        style={{ width: 250 }}
+                    />
+                    <Button
+                        type="primary"
+                        icon={<PlusOutlined />}
+                        onClick={() => router.push('/accounting/contracts/create')}
+                        style={{ background: '#d32f2f', borderColor: '#d32f2f' }}
+                    >
+                        Thêm kế toán mới
+                    </Button>
+                </Space>
             </div>
 
             <div style={{ marginBottom: 16 }}>
@@ -198,13 +314,23 @@ export default function ContractListPage() {
             >
                 <Table
                     columns={columns}
-                    dataSource={contracts.map((item: any, index: number) => ({ ...item, stt: index + 1 }))}
-                    rowKey="id"
+                    dataSource={flattenedContracts.map((item: any, index: number) => ({ ...item, stt: index + 1 }))}
+                    rowKey="uniqueKey"
                     loading={loading}
                     scroll={{ x: 1000 }}
                     pagination={{ pageSize: 15 }}
                 />
             </ConfigProvider>
+
+            <ContractDetailModal
+                open={!!viewContractId}
+                contractId={viewContractId}
+                selectedReceiptId={viewReceiptId}
+                onClose={() => {
+                    setViewContractId(null);
+                    setViewReceiptId(null);
+                }}
+            />
         </div>
     );
 }

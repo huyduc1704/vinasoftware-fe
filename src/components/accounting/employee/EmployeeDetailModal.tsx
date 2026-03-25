@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Descriptions, Image, Typography, Row, Col, Divider, Tag, Space } from 'antd';
+import { Modal, Descriptions, Image, Typography, Row, Col, Divider, Tag, App, Space } from 'antd';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -12,7 +12,7 @@ interface EmployeeDetailModalProps {
 
 const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({ visible, employee, onClose }) => {
     if (!employee) return null;
-
+    const { message } = App.useApp();
     const files = employee.files || [];
     const avatar = files.find((f: any) => f.category === 'AVATAR');
     const idFront = files.find((f: any) => f.category === 'ID_FRONT');
@@ -45,7 +45,7 @@ const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({ visible, empl
                 </Col>
 
                 <Col span={16}>
-                    <Descriptions column={1} labelStyle={{ fontWeight: 600, width: '130px' }} bordered size="small">
+                    <Descriptions column={1} styles={{ label: { fontWeight: 600, width: '130px' } }} bordered size="small">
                         <Descriptions.Item label="Mã nhân viên">
                             <Text strong type="danger">{employee.employeeCode}</Text>
                         </Descriptions.Item>

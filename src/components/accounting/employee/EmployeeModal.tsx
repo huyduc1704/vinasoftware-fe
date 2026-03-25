@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, message, Upload } from 'antd';
+import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, App, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { employeeApi, regionApi } from '@/utils/api';
@@ -14,6 +14,7 @@ interface EmployeeModalProps {
 }
 
 export default function EmployeeModal({ open, onCancel, onOk, initialValues, title, currentRoleCode }: EmployeeModalProps) {
+    const { message } = App.useApp();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
@@ -47,7 +48,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
 
             if (['TRUONG_PHONG_CAP_CAO', 'TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC' })
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC', limit: 1000 })
                         .then(data => {
                             const items = parseEmployees(data);
                             setAreaManagers(items);
@@ -58,7 +59,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             }
             if (['TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO' })
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO', limit: 1000 })
                         .then(data => {
                             const items = parseEmployees(data);
                             setSeniorManagers(items);
@@ -69,7 +70,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             }
             if (['QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG' })
+                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG', limit: 1000 })
                         .then(data => {
                             const items = parseEmployees(data);
                             setDeptManagers(items);
@@ -80,7 +81,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             }
             if (['NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'QUAN_LY' })
+                    employeeApi.getEmployees({ roleCode: 'QUAN_LY', limit: 1000 })
                         .then(data => {
                             const items = parseEmployees(data);
                             setManagers(items);
