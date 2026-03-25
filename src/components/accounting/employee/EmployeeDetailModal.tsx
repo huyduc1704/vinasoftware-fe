@@ -74,6 +74,15 @@ const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({ visible, empl
                                 <Tag color="default">Tạm khóa</Tag>
                             )}
                         </Descriptions.Item>
+                        <Descriptions.Item label="TP Cấp cao">
+                            {employee.seniorDeptManager?.fullName || '-'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Trưởng phòng">
+                            {employee.deptManager?.fullName || '-'}
+                        </Descriptions.Item>
+                        <Descriptions.Item label="Quản lý trực tiếp">
+                            {employee.manager?.fullName || '-'}
+                        </Descriptions.Item>
                     </Descriptions>
                 </Col>
             </Row>

@@ -220,14 +220,22 @@ export default function ContractDetailModal({ open, contractId, selectedReceiptI
                 </Button>,
             ]}
             centered
+            styles={{
+                body: {
+                    maxHeight: 'calc(100vh - 200px)',
+                    overflowY: 'auto'
+                }
+            }}
         >
-            {loading ? (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}><Spin /></div>
-            ) : data ? (
-                <Tabs defaultActiveKey="tong-quan" items={tabItems} />
-            ) : (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}><Text type="secondary">Dữ liệu không tồn tại</Text></div>
-            )}
+            <div data-lenis-prevent>
+                {loading ? (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}><Spin /></div>
+                ) : data ? (
+                    <Tabs defaultActiveKey="tong-quan" items={tabItems} />
+                ) : (
+                    <div style={{ textAlign: 'center', padding: '40px 0' }}><Text type="secondary">Dữ liệu không tồn tại</Text></div>
+                )}
+            </div>
         </Modal>
     );
 }

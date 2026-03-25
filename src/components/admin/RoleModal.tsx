@@ -51,7 +51,7 @@ const RoleModal: React.FC<RoleModalProps> = ({
             destroyOnHidden
             styles={{ body: { padding: 0 } }}
         >
-            <div data-lenis-prevent="true" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '24px' }}>
+            <div data-lenis-prevent="true" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: '24px' }}>
                 <Form form={form} layout="vertical">
                     <Form.Item
                         name="code"

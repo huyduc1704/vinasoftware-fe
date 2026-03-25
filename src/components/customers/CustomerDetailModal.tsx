@@ -17,7 +17,6 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
 
     const handleCopy = () => {
         const info = [
-            `Mã khách hàng: ${customer.code || '-'}`,
             `Họ và tên: ${customer.fullName}`,
             `Số điện thoại: ${customer.phone || '-'}`,
             `Người đại diện: ${customer.representative || '-'}`,
@@ -50,7 +49,7 @@ const CustomerDetailModal: React.FC<CustomerDetailModalProps> = ({
             destroyOnHidden
             styles={{ body: { padding: 0 } }}
         >
-            <div data-lenis-prevent="true" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '24px' }}>
+            <div data-lenis-prevent="true" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: '24px' }}>
                 <Descriptions
                     title="Thông tin cơ bản"
                     bordered

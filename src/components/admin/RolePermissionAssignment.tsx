@@ -279,7 +279,7 @@ const RolePermissionAssignment: React.FC<Props> = ({ open, role, onCancel, onSuc
             centered
             styles={{ body: { padding: 0 } }}
         >
-            <div data-lenis-prevent="true" style={{ maxHeight: '70vh', overflowY: 'auto', padding: '24px' }}>
+            <div data-lenis-prevent="true" style={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: '24px' }}>
                 <style dangerouslySetInnerHTML={{
                     __html: `
                 .group-checkbox .ant-checkbox-inner { width: 18px; height: 18px; }

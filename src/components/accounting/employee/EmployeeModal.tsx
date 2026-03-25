@@ -208,8 +208,15 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             width={800}
             okText="Lưu"
             cancelText="Hủy"
+            styles={{
+                body: {
+                    maxHeight: 'calc(100vh - 200px)',
+                    overflowY: 'auto'
+                }
+            }}
         >
-            <Form form={form} layout="vertical" onValuesChange={handleValuesChange}>
+            <div data-lenis-prevent="true">
+                <Form form={form} layout="vertical" onValuesChange={handleValuesChange}>
                 <Row gutter={16}>
                     <Col span={8}>
                         <Form.Item
@@ -262,39 +269,35 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                     </Col>
                 </Row>
 
-                {['NVKD', 'ACCOUNTANT', 'EMPLOYEE'].includes(currentRoleCode || '') && (
-                    <>
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Email không hợp lệ!' }]}>
-                                    <Input placeholder="abc@gmail.com" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true, message: 'Vui lòng nhập SĐT!' }]}>
-                                    <Input placeholder="0901234567" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-
-                        <Form.Item name="address" label="Địa chỉ" rules={[{ required: true, message: 'Vui lòng nhập địa chỉ!' }]}>
-                            <Input.TextArea rows={2} placeholder="Nhập địa chỉ" />
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Email không hợp lệ!' }]}>
+                            <Input placeholder="abc@gmail.com" />
                         </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="phone" label="Số điện thoại" rules={[{ required: true, message: 'Vui lòng nhập SĐT!' }]}>
+                            <Input placeholder="0901234567" />
+                        </Form.Item>
+                    </Col>
+                </Row>
 
-                        <Row gutter={16}>
-                            <Col span={12}>
-                                <Form.Item name="dob" label="Ngày sinh" rules={[{ required: true, message: 'Vui lòng nhập ngày tháng năm sinh' }]}>
-                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-                                </Form.Item>
-                            </Col>
-                            <Col span={12}>
-                                <Form.Item name="joinDate" label="Ngày tham gia" rules={[{ required: true, message: 'Vui lòng nhập ngày vào công ty' }]}>
-                                    <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
-                                </Form.Item>
-                            </Col>
-                        </Row>
-                    </>
-                )}
+                <Form.Item name="address" label="Địa chỉ" rules={[{ required: true, message: 'Vui lòng nhập địa chỉ!' }]}>
+                    <Input.TextArea rows={2} placeholder="Nhập địa chỉ" />
+                </Form.Item>
+
+                <Row gutter={16}>
+                    <Col span={12}>
+                        <Form.Item name="dob" label="Ngày sinh" rules={[{ required: true, message: 'Vui lòng nhập ngày tháng năm sinh' }]}>
+                            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item name="joinDate" label="Ngày tham gia" rules={[{ required: true, message: 'Vui lòng nhập ngày vào công ty' }]}>
+                            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                        </Form.Item>
+                    </Col>
+                </Row>
 
                 <Row gutter={16}>
                     <Col span={12}>
@@ -345,8 +348,8 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                         </Form.Item>
                     </Col>
                     <Col span={12}>
-                        <Form.Item 
-                            name="password" 
+                        <Form.Item
+                            name="password"
                             label={initialValues?.id ? "Đổi mật khẩu (Để trống nếu không đổi)" : "Mật khẩu (Cho tài khoản mới)"}
                             rules={initialValues?.id ? [] : [{ required: false }]} // Backend handles required check if needed
                         >
@@ -356,41 +359,36 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                 </Row>
 
                 <Row gutter={16}>
-                    {['TRUONG_PHONG', 'QUAN_LY', 'NVKD'].includes(currentRoleCode || '') && (
-                        <Col span={8}>
-                            <Form.Item name="seniorDeptManagerId" label="Trưởng phòng cấp cao">
-                                <Select placeholder="Chọn Trưởng phòng cấp cao" allowClear>
-                                    {seniorManagers.map((m: any) => (
-                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    )}
-                    {['QUAN_LY', 'NVKD'].includes(currentRoleCode || '') && (
-                        <Col span={8}>
-                            <Form.Item name="deptManagerId" label="Trưởng phòng">
-                                <Select placeholder="Chọn Trưởng phòng" allowClear>
-                                    {deptManagers.map((m: any) => (
-                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    )}
-                    {['NVKD'].includes(currentRoleCode || '') && (
-                        <Col span={8}>
-                            <Form.Item name="managerId" label="Quản lý trực tiếp">
-                                <Select placeholder="Chọn Quản lý" allowClear>
-                                    {managers.map((m: any) => (
-                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
-                                    ))}
-                                </Select>
-                            </Form.Item>
-                        </Col>
-                    )}
+                    <Col span={8}>
+                        <Form.Item name="seniorDeptManagerId" label="Trưởng phòng cấp cao">
+                            <Select placeholder="Chọn Trưởng phòng cấp cao" allowClear>
+                                {seniorManagers.map((m: any) => (
+                                    <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item name="deptManagerId" label="Trưởng phòng">
+                            <Select placeholder="Chọn Trưởng phòng" allowClear>
+                                {deptManagers.map((m: any) => (
+                                    <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                        <Form.Item name="managerId" label="Quản lý trực tiếp">
+                            <Select placeholder="Chọn Quản lý" allowClear>
+                                {managers.map((m: any) => (
+                                    <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
                 </Row>
             </Form>
+            </div>
         </Modal>
     );
 }
