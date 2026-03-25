@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, DatePicker, Select, Button, Row, Col, App, Upload } from 'antd';
 import { UploadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import { employeeApi, regionApi } from '@/utils/api';
+import { employeeApi, regionApi, roleApi } from '@/utils/api';
 
 interface EmployeeModalProps {
     open: boolean;
@@ -24,6 +24,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
     const [seniorManagers, setSeniorManagers] = useState<any[]>([]);
     const [deptManagers, setDeptManagers] = useState<any[]>([]);
     const [managers, setManagers] = useState<any[]>([]);
+    const [allRoles, setAllRoles] = useState<any[]>([]);
     const [selectedRegionCode, setSelectedRegionCode] = useState<string | undefined>(undefined);
 
 
@@ -46,7 +47,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                 }).catch(() => { setRegions([]); return []; })
             );
 
-            if (['TRUONG_PHONG_CAP_CAO', 'TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
+            if (['TRUONG_PHONG_CAP_CAO', 'TRUONG_PHONG', 'QUAN_LY', 'NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
                     employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC', limit: 1000 })
                         .then(data => {
@@ -57,7 +58,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                         .catch(() => [])
                 );
             }
-            if (['TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
+            if (['TRUONG_PHONG', 'QUAN_LY', 'NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
                     employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO', limit: 1000 })
                         .then(data => {
@@ -68,7 +69,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                         .catch(() => [])
                 );
             }
-            if (['QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
+            if (['QUAN_LY', 'NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
                     employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG', limit: 1000 })
                         .then(data => {
@@ -79,7 +80,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                         .catch(() => [])
                 );
             }
-            if (['NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '')) {
+            if (['NVKD'].includes(currentRoleCode || '')) {
                 fetchPromises.push(
                     employeeApi.getEmployees({ roleCode: 'QUAN_LY', limit: 1000 })
                         .then(data => {
@@ -90,6 +91,14 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                         .catch(() => [])
                 );
             }
+
+            fetchPromises.push(
+                roleApi.getRoles().then((data: any) => {
+                    const items = data?.data || data?.items || data || [];
+                    setAllRoles(items);
+                    return items;
+                }).catch(() => { setAllRoles([]); return []; })
+            );
 
             Promise.all(fetchPromises).then((results) => {
                 const fetchedRegions = results[0] || [];
@@ -111,15 +120,20 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                         if (reg) autoAreaManagerId = reg.managerId;
                     }
 
+                    const roleIdsArr = initialValues.user?.usersRoles?.map((ur: any) => ur.roleId) || [];
                     form.setFieldsValue({
                         ...initialValues,
                         regionCode: defaultRegionCode,
                         areaManagerId: autoAreaManagerId,
                         dob: initialValues.dob ? dayjs(initialValues.dob) : null,
                         joinDate: initialValues.joinDate ? dayjs(initialValues.joinDate) : null,
+                        roleIds: roleIdsArr.length > 0 ? roleIdsArr[0] : undefined,
                     });
                 } else {
                     form.resetFields();
+                    if (currentRoleCode && !currentRoleCode.includes(',')) {
+                        form.setFieldsValue({ roleCode: currentRoleCode });
+                    }
                     setSelectedRegionCode(undefined);
                 }
             });
@@ -128,6 +142,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             setSeniorManagers([]);
             setDeptManagers([]);
             setManagers([]);
+            setAllRoles([]);
             setSelectedRegionCode(undefined);
         }
     }, [open, initialValues, form, currentRoleCode]);
@@ -138,11 +153,13 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
             const values = await form.validateFields();
             setLoading(true);
 
+            const roleIds = values.roleIds ? [values.roleIds] : [];
             const formattedData = {
                 ...values,
+                roleIds,
                 dob: values.dob ? values.dob.toISOString() : null,
                 joinDate: values.joinDate ? values.joinDate.toISOString() : null,
-                roleCode: currentRoleCode || null,
+                roleCode: values.roleCode || currentRoleCode || null,
             };
 
             await onOk(formattedData);
@@ -245,7 +262,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                     </Col>
                 </Row>
 
-                {['NHAN_VIEN_KINH_DOANH', 'ACCOUNTANT', 'EMPLOYEE'].includes(currentRoleCode || '') && (
+                {['NVKD', 'ACCOUNTANT', 'EMPLOYEE'].includes(currentRoleCode || '') && (
                     <>
                         <Row gutter={16}>
                             <Col span={12}>
@@ -281,9 +298,9 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
 
                 <Row gutter={16}>
                     <Col span={12}>
-                        <Form.Item name="regionCode" label={currentRoleCode === 'TRUONG_KHU_VUC' ? "Khu vực" : "Chọn Trưởng khu vực (Mã khu vực)"} rules={[{ required: true, message: 'Vui lòng chọn Khu vực!' }]}>
+                        <Form.Item name="regionCode" label={currentRoleCode === 'TRUONG_KHU_VUC' ? "Khu vực" : "Chọn Khu vực làm việc"} rules={[{ required: true, message: 'Vui lòng chọn Khu vực!' }]}>
                             <Select
-                                placeholder="Chọn mã khu vực"
+                                placeholder="Chọn khu vực làm việc"
                                 mode={currentRoleCode === 'TRUONG_KHU_VUC' ? 'multiple' : undefined}
                                 allowClear
                             >
@@ -295,24 +312,51 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                             </Select>
                         </Form.Item>
                     </Col>
-                    <Form.Item hidden name="areaManagerId">
-                        <Input />
-                    </Form.Item>
                     <Col span={12}>
-                        <Form.Item name="roleId" label="Role ID (Quyền đăng nhập)">
-                            <Input placeholder="Bỏ trống nếu không cấp quyền" />
+                        <Form.Item name="roleCode" label="Chức vụ (Role)" rules={[{ required: true, message: 'Vui lòng chọn chức vụ!' }]}>
+                            <Select placeholder="Chọn chức vụ">
+                                <Select.Option value="NVKD">Nhân viên kinh doanh</Select.Option>
+                                <Select.Option value="QUAN_LY">Quản lý</Select.Option>
+                                <Select.Option value="TRUONG_PHONG">Trưởng phòng</Select.Option>
+                                <Select.Option value="TRUONG_PHONG_CAP_CAO">Trưởng phòng cấp cao</Select.Option>
+                                <Select.Option value="TRUONG_KHU_VUC">Trưởng khu vực</Select.Option>
+                            </Select>
                         </Form.Item>
                     </Col>
                 </Row>
 
-                {!initialValues && (
-                    <Form.Item name="password" label="Mật khẩu (Cho tài khoản mới)">
-                        <Input.Password placeholder="Nhập mật khẩu" />
-                    </Form.Item>
-                )}
+                <Form.Item hidden name="areaManagerId">
+                    <Input />
+                </Form.Item>
 
                 <Row gutter={16}>
-                    {['TRUONG_PHONG', 'QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '') && (
+                    <Col span={12}>
+                        <Form.Item name="roleIds" label="Quyền đăng nhập (Role)">
+                            <Select
+                                placeholder="Chọn nhóm quyền"
+                                allowClear
+                            >
+                                {allRoles.map((r: any) => (
+                                    <Select.Option key={r.id} value={r.id}>
+                                        {r.name}
+                                    </Select.Option>
+                                ))}
+                            </Select>
+                        </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                        <Form.Item 
+                            name="password" 
+                            label={initialValues?.id ? "Đổi mật khẩu (Để trống nếu không đổi)" : "Mật khẩu (Cho tài khoản mới)"}
+                            rules={initialValues?.id ? [] : [{ required: false }]} // Backend handles required check if needed
+                        >
+                            <Input.Password placeholder={initialValues?.id ? "Nhập mật khẩu mới" : "Nhập mật khẩu"} />
+                        </Form.Item>
+                    </Col>
+                </Row>
+
+                <Row gutter={16}>
+                    {['TRUONG_PHONG', 'QUAN_LY', 'NVKD'].includes(currentRoleCode || '') && (
                         <Col span={8}>
                             <Form.Item name="seniorDeptManagerId" label="Trưởng phòng cấp cao">
                                 <Select placeholder="Chọn Trưởng phòng cấp cao" allowClear>
@@ -323,7 +367,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                             </Form.Item>
                         </Col>
                     )}
-                    {['QUAN_LY', 'NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '') && (
+                    {['QUAN_LY', 'NVKD'].includes(currentRoleCode || '') && (
                         <Col span={8}>
                             <Form.Item name="deptManagerId" label="Trưởng phòng">
                                 <Select placeholder="Chọn Trưởng phòng" allowClear>
@@ -334,7 +378,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                             </Form.Item>
                         </Col>
                     )}
-                    {['NHAN_VIEN_KINH_DOANH', 'NVKD'].includes(currentRoleCode || '') && (
+                    {['NVKD'].includes(currentRoleCode || '') && (
                         <Col span={8}>
                             <Form.Item name="managerId" label="Quản lý trực tiếp">
                                 <Select placeholder="Chọn Quản lý" allowClear>

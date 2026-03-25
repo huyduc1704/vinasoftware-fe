@@ -551,7 +551,7 @@ export default function EmployeePage() {
             </div>
 
             {/* Filter Dropdowns */}
-            {(!currentRoleCode || currentRoleCode === 'NHAN_VIEN_KINH_DOANH' || currentRoleCode === 'NVKD') && (
+            {(!currentRoleCode || currentRoleCode === 'NVKD') && (
                 <div style={{ marginBottom: '24px' }}>
                     <Row gutter={16}>
                         <Col span={6}>
