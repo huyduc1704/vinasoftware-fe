@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from 'react';
 import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider, Badge, App, Input, Select, DatePicker } from 'antd';
-import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MinusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useRouter } from 'next/navigation';
 import { contractApi } from '@/utils/api';
@@ -62,42 +62,15 @@ export default function ContractListPage() {
         }
     };
 
-    const flattenedContracts = React.useMemo(() => {
-        let flattened: any[] = [];
-        contracts.forEach(contract => {
-            if (contract.receipts && contract.receipts.length > 0) {
-                const isMulti = contract.receipts.length > 1;
-                contract.receipts.forEach((receipt: any, index: number) => {
-                    flattened.push({
-                        ...contract,
-                        uniqueKey: `${contract.id}_${receipt.id || index}`,
-                        originalId: contract.id,
-                        displayContractCode: isMulti ? `${contract.contractCode} - ${receipt.name}` : contract.contractCode,
-                        isMultiInstallment: isMulti,
-                        displayDate: receipt.paidDate || contract.submissionDate,
-                        displayAmount: receipt.amount != null ? receipt.amount : contract.totalAmount
-                    });
-                });
-            } else {
-                flattened.push({
-                    ...contract,
-                    uniqueKey: contract.id,
-                    originalId: contract.id,
-                    displayContractCode: contract.contractCode,
-                    isMultiInstallment: false,
-                    displayDate: contract.submissionDate,
-                    displayAmount: contract.totalAmount
-                });
-            }
-        });
-
-        let result = flattened;
+    const displayContracts = React.useMemo(() => {
+        let result = contracts;
 
         if (searchText) {
             const lowerSearch = searchText.toLowerCase();
             result = result.filter(item =>
                 item.contractCode?.toLowerCase().includes(lowerSearch) ||
-                item.regionCode?.toLowerCase().includes(lowerSearch)
+                item.regionCode?.toLowerCase().includes(lowerSearch) ||
+                item.title?.toLowerCase().includes(lowerSearch)
             );
         }
 
@@ -109,8 +82,8 @@ export default function ContractListPage() {
             const start = dateRange[0].startOf('day');
             const end = dateRange[1].endOf('day');
             result = result.filter(item => {
-                if (!item.displayDate) return false;
-                const d = dayjs(item.displayDate);
+                if (!item.submissionDate) return false;
+                const d = dayjs(item.submissionDate);
                 return (d.isAfter(start) || d.isSame(start)) && (d.isBefore(end) || d.isSame(end));
             });
         }
@@ -127,19 +100,9 @@ export default function ContractListPage() {
         },
         {
             title: 'Mã hợp đồng',
-            dataIndex: 'displayContractCode',
-            key: 'displayContractCode',
+            dataIndex: 'contractCode',
+            key: 'contractCode',
             width: 150,
-            render: (text: string, record: any) => {
-                if (record.isMultiInstallment) {
-                    return (
-                        <Text style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                            {text}
-                        </Text>
-                    );
-                }
-                return text;
-            }
         },
         {
             title: 'Tên hợp đồng',
@@ -173,15 +136,15 @@ export default function ContractListPage() {
         },
         {
             title: 'Ngày nộp',
-            dataIndex: 'displayDate',
-            key: 'displayDate',
+            dataIndex: 'submissionDate',
+            key: 'submissionDate',
             width: 150,
             render: (date: string) => date ? dayjs(date).format('DD/MM/YYYY') : '-',
         },
         {
             title: 'Tổng giá trị',
-            dataIndex: 'displayAmount',
-            key: 'displayAmount',
+            dataIndex: 'totalAmount',
+            key: 'totalAmount',
             width: 150,
             render: (val: any) => {
                 if (!val) return '-';
@@ -230,8 +193,8 @@ export default function ContractListPage() {
                         type="text"
                         icon={<EyeOutlined style={{ color: '#52c41a' }} />}
                         onClick={() => {
-                            setViewContractId(record.originalId);
-                            setViewReceiptId(record.isMultiInstallment ? record.uniqueKey.split('_')[1] : null);
+                            setViewContractId(record.id);
+                            setViewReceiptId(null);
                         }}
                     />
                     <Button
@@ -242,7 +205,7 @@ export default function ContractListPage() {
                     <Popconfirm
                         title="Xóa hợp đồng"
                         description="Bạn có chắc chắn muốn xóa hợp đồng này?"
-                        onConfirm={() => handleDelete(record.originalId)}
+                        onConfirm={() => handleDelete(record.id)}
                         okText="Có"
                         cancelText="Không"
                     >
@@ -252,6 +215,66 @@ export default function ContractListPage() {
             ),
         },
     ];
+
+    const expandedRowRender = (contract: any) => {
+        const nestedColumns: ColumnsType<any> = [
+            {
+                title: 'Đợt nộp',
+                dataIndex: 'name',
+                key: 'name',
+                render: (text: string) => <Text strong style={{ color: '#1890ff' }}>{text}</Text>
+            },
+            {
+                title: 'Số tiền',
+                dataIndex: 'amount',
+                key: 'amount',
+                render: (val: any) => (val != null ? Number(val).toLocaleString('vi-VN') + ' ₫' : '-')
+            },
+            {
+                title: 'Ngày nộp',
+                dataIndex: 'paidDate',
+                key: 'paidDate',
+                render: (date: string) => (date ? dayjs(date).format('DD/MM/YYYY') : '-')
+            },
+            {
+                title: 'Số phiếu thu',
+                dataIndex: 'receiptCode',
+                key: 'receiptCode',
+            },
+            {
+                title: 'Thao tác',
+                key: 'action',
+                width: 100,
+                render: (_, receipt) => (
+                    <Button
+                        type="text"
+                        size="small"
+                        icon={<EyeOutlined style={{ color: '#52c41a' }} />}
+                        onClick={() => {
+                            setViewContractId(contract.id);
+                            setViewReceiptId(receipt.id);
+                        }}
+                    >
+                        Chi tiết
+                    </Button>
+                )
+            }
+        ];
+
+        return (
+            <div style={{ padding: '0 16px 16px 60px' }}>
+                <Table
+                    columns={nestedColumns}
+                    dataSource={contract.receipts || []}
+                    pagination={false}
+                    rowKey="id"
+                    size="small"
+                    bordered={false}
+                    style={{ background: '#f9f9f9', borderRadius: '4px' }}
+                />
+            </div>
+        );
+    };
 
     return (
         <div style={{ background: '#fff', padding: '24px', borderRadius: '8px', minHeight: 'calc(100vh - 150px)' }}>
@@ -314,11 +337,39 @@ export default function ContractListPage() {
             >
                 <Table
                     columns={columns}
-                    dataSource={flattenedContracts.map((item: any, index: number) => ({ ...item, stt: index + 1 }))}
-                    rowKey="uniqueKey"
+                    dataSource={displayContracts.map((item: any, index: number) => ({ ...item, stt: index + 1 }))}
+                    rowKey="id"
                     loading={loading}
                     scroll={{ x: 1000 }}
                     pagination={{ pageSize: 15 }}
+                    expandable={{
+                        expandedRowRender,
+                        rowExpandable: (record) => record.receipts && record.receipts.length > 1,
+                        expandIcon: ({ expanded, onExpand, record }) => {
+                            if (!record.receipts || record.receipts.length <= 1) return <span style={{ width: 28, display: 'inline-block' }} />;
+                            return (
+                                <div
+                                    onClick={e => onExpand(record, e)}
+                                    style={{
+                                        width: '24px',
+                                        height: '24px',
+                                        borderRadius: '4px',
+                                        background: expanded ? '#fff1f0' : '#e6f7ff',
+                                        border: `1px solid ${expanded ? '#ffa39e' : '#91d5ff'}`,
+                                        color: expanded ? '#f5222d' : '#1890ff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        cursor: 'pointer',
+                                        transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        transition: 'all 0.3s'
+                                    }}
+                                >
+                                    {expanded ? <MinusOutlined style={{ fontSize: '12px' }} /> : <PlusOutlined style={{ fontSize: '12px' }} />}
+                                </div>
+                            );
+                        }
+                    }}
                 />
             </ConfigProvider>
 
