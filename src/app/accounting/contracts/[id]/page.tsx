@@ -115,14 +115,14 @@ export default function ContractDetailPage() {
                                 } else {
                                     // Set up sd.web if not exists
                                     if (!sd.web) sd.web = {};
-                                    sd.web = { 
+                                    sd.web = {
                                         ...sd.web,
-                                        giaWeb: numericPrice !== undefined ? numericPrice : numericTotal, 
-                                        giaHopDong: numericPrice !== undefined ? numericPrice : numericTotal, 
-                                        vatRate: numericVatRate, 
-                                        tongThanhToan: data.totalAmount || numericTotal, 
-                                        tongGiaTri: data.totalAmount || numericTotal, 
-                                        ...s.webInfo 
+                                        giaWeb: numericPrice !== undefined ? numericPrice : numericTotal,
+                                        giaHopDong: numericPrice !== undefined ? numericPrice : numericTotal,
+                                        vatRate: numericVatRate,
+                                        tongThanhToan: data.totalAmount || numericTotal,
+                                        tongGiaTri: data.totalAmount || numericTotal,
+                                        ...s.webInfo
                                     };
                                     sd.webInfo = { chucNang: s.webInfo?.chucNang };
                                     sd.webChiTiet = {
@@ -258,6 +258,7 @@ export default function ContractDetailPage() {
                 }
             }
             form.setFieldsValue(mappedValues);
+
         }
     }, [pageLoading, formValues, managers]);
 
@@ -295,7 +296,7 @@ export default function ContractDetailPage() {
             const vatRate = Number(currentWeb.vatRate || 0);
             const vatAmount = vatRate <= 100 ? tongGiaTri * vatRate / 100 : vatRate;
             const tongThanhToan = tongGiaTri + vatAmount;
-            
+
             if (web?.tongGiaTri !== undefined || web?.vatRate !== undefined || updates.tongGiaTri !== undefined) {
                 updates.tongThanhToan = tongThanhToan;
             }
@@ -374,7 +375,7 @@ export default function ContractDetailPage() {
                 const webPrice = Number(mergedServiceDetails.web?.giaWeb || 0);
                 const vatRate = Number(mergedServiceDetails.web?.vatRate || 0);
                 const factor = 1 + (vatRate / 100);
-                
+
                 services.push({
                     id: webId,
                     type: 'WEB',

@@ -281,11 +281,15 @@ export const regionApi = {
 };
 
 export const customerApi = {
-    getCustomers: async () => {
-        return fetchWithCredentials('/customers', { method: 'GET' });
+    getCustomers: async (search?: string) => {
+        const url = search ? `/customers?search=${encodeURIComponent(search)}` : '/customers';
+        return fetchWithCredentials(url, { method: 'GET' });
     },
     getCustomerById: async (id: string) => {
         return fetchWithCredentials(`/customers/${id}`, { method: 'GET' });
+    },
+    getByPhone: async (phone: string) => {
+        return fetchWithCredentials(`/customers/phone/${phone}`, { method: 'GET' });
     },
     createCustomer: async (data: any) => {
         return fetchWithCredentials('/customers', {

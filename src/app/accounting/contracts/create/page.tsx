@@ -3,7 +3,7 @@
 import React, { use, useState } from 'react';
 import { Form, Input, Select, Button, DatePicker, Row, Col, Tabs, Typography, Switch, message, ConfigProvider, Space, InputNumber, App } from 'antd';
 import { useRouter } from 'next/navigation';
-import { contractApi } from '@/utils/api';
+import { contractApi, customerApi } from '@/utils/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -16,6 +16,34 @@ export default function ContractCreatePage() {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [showAccountingInfo, setShowAccountingInfo] = useState(true);
+
+
+    const handlePhoneBlur = async (phone: string) => {
+        if (!phone || phone.length < 10) return;
+        try {
+            const customer = await customerApi.getByPhone(phone);
+            if (customer) {
+                const updates: any = {
+                    tenKhachHang: customer.fullName || "",
+                    daiDien: customer.representative || "",
+                    maSoThue: customer.taxCode || "",
+                    email: customer.email || "",
+                    diaChi: customer.address || "",
+                    ngaySinh: customer.dob ? dayjs(customer.dob) : null,
+                };
+
+                form.setFieldsValue({
+                    serviceDetails: {
+                        customerInfo: updates
+                    }
+                });
+
+                message.success('Đã tự động lấy thông tin khách hàng cũ!');
+            }
+        } catch (error) {
+            console.log('Khách hàng mới');
+        }
+    };
 
     const handleValuesChange = (changedValues: any, allValues: any) => {
         if (changedValues?.serviceDetails?.web) {
@@ -592,7 +620,9 @@ export default function ContractCreatePage() {
             </Row>
             <Row gutter={24}>
                 <Col xs={24} md={12} xl={8}>
-                    <Form.Item name={['serviceDetails', 'customerInfo', 'soDienThoai']} label="SỐ ĐIỆN THOẠI" labelCol={{ span: 24 }}><Input /></Form.Item>
+                    <Form.Item name={['customerData', 'phone']} label='Số điện thoại'>
+                        <Input onBlur={(e) => handlePhoneBlur(e.target.value)} />
+                    </Form.Item>
                 </Col>
                 <Col xs={24} md={12} xl={8}>
                     <Form.Item name={['serviceDetails', 'customerInfo', 'email']} label="MAIL" labelCol={{ span: 24 }}><Input /></Form.Item>

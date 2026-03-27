@@ -200,7 +200,7 @@ export default function ContractListPage() {
                     <Button
                         type="text"
                         icon={<EditOutlined style={{ color: '#1890ff' }} />}
-                        onClick={() => router.push(`/accounting/contracts/${record.originalId}`)}
+                        onClick={() => router.push(`/accounting/contracts/${record.id}`)}
                     />
                     <Popconfirm
                         title="Xóa hợp đồng"

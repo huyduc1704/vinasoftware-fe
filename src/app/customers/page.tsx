@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider, Tag, App } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Typography, Button, Table, Space, message, Popconfirm, ConfigProvider, Tag, App, Input } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, EyeOutlined, MinusOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
@@ -9,6 +9,7 @@ import gsap from 'gsap';
 import CustomerModal from '@/components/customers/CustomerModal';
 import { customerApi } from '@/utils/api';
 import CustomerDetailModal from '@/components/customers/CustomerDetailModal';
+import { debounce } from 'lodash';
 
 const { Title } = Typography;
 
@@ -16,7 +17,7 @@ export default function CustomerPage() {
     const { message } = App.useApp();
     const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
-
+    const [searchQuery, setSearchQuery] = useState('');
     // Modal state
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCustomer, setEditingCustomer] = useState<any>(null);
@@ -32,10 +33,10 @@ export default function CustomerPage() {
     const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
     const [viewingCustomer, setViewingCustomer] = useState<any>(null);
 
-    const fetchCustomers = async () => {
+    const fetchCustomers = async (search?: string) => {
         try {
             setLoading(true);
-            const data = await customerApi.getCustomers();
+            const data = await customerApi.getCustomers(search ?? searchQuery);
             if (Array.isArray(data)) {
                 setCustomers(data);
             } else if (data && Array.isArray(data.data)) {
@@ -51,6 +52,22 @@ export default function CustomerPage() {
             setLoading(false);
         }
     };
+
+
+    // useEffect(() => {
+    //     const timer = setTimeout(() => {
+    //         fetchCustomers(searchQuery);
+    //     }, 300);
+
+    //     return () => clearTimeout(timer);
+    // }, [searchQuery]);
+
+    const debouncedFetch = useMemo(
+        () => debounce((value: string) => {
+            fetchCustomers(value);
+        }, 500),
+        []
+    );
 
     useEffect(() => {
         fetchCustomers();
@@ -243,22 +260,18 @@ export default function CustomerPage() {
         return <AnimatedExpandedRow record={record} expanded={!isCollapsing} />;
     };
 
-    // Hàm xử lý việc bung/cụp với thời gian chờ (delay) để chạy animation
     const handleExpandToggle = (record: any, e: any) => {
         e.stopPropagation();
         const isCurrentlyExpanded = expandedRowKeys.includes(record.id);
 
         if (isCurrentlyExpanded) {
-            // Khi nhấn đóng: Đưa ID vào mảng collapsing để trigger reverse animation
             setCollapsingKeys(prev => [...prev, record.id]);
 
-            // Chờ 500ms cho GSAP chạy xong hiệu ứng thì mới thực sự xóa node khỏi Ant Design Table
             setTimeout(() => {
                 setExpandedRowKeys(prev => prev.filter(k => k !== record.id));
                 setCollapsingKeys(prev => prev.filter(k => k !== record.id));
             }, 300);
         } else {
-            // Khi mở: Hiện thẳng
             setExpandedRowKeys(prev => [...prev, record.id]);
         }
     };
@@ -283,6 +296,19 @@ export default function CustomerPage() {
                             </Button>
                         </Popconfirm>
                     )}
+                    <Input.Search
+                        placeholder="Tìm tên hoặc số điện thoại..."
+                        allowClear
+                        enterButton
+                        style={{ width: 300 }}
+                        value={searchQuery}
+                        onChange={(e) => {
+                            const value = e.target.value;
+                            setSearchQuery(value);
+                            debouncedFetch(value);
+                        }}
+                        onSearch={(value) => fetchCustomers(value)}
+                    />
                     <Button
                         type="primary"
                         icon={<PlusOutlined />}
