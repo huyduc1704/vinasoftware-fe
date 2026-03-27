@@ -161,12 +161,13 @@ export default function ContractCreatePage() {
                     totalAmount: formattedServiceDetails.web?.tongThanhToan || formattedServiceDetails.web?.tongGiaTri || webPrice || 0,
                     webInfo: mapWebInfo(formattedServiceDetails.webInfo) || (values.features ? { chucNang: values.features } : null)
                 });
+                const webDates = formattedServiceDetails.webDates || {};
                 const dot1Amount = formattedServiceDetails.webChiTiet?.dot1 || 0;
-                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: webDates.dot1 ? webDates.dot1.toISOString() : null });
                 const dot2Amount = formattedServiceDetails.webChiTiet?.dot2 || 0;
-                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: null });
+                if (dot2Amount > 0) receipts.push({ name: 'Lần 2', amount: dot2Amount, serviceId: id, order: paymentOrder++, paidDate: webDates.dot2 ? webDates.dot2.toISOString() : null });
                 const banGiaoAmount = formattedServiceDetails.webChiTiet?.banGiao || 0;
-                if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: null });
+                if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: webDates.banGiao ? webDates.banGiao.toISOString() : null });
             }
             if (formattedServiceDetails.webUpgrade?.giaTriHopDong || formattedServiceDetails.webUpgradeInfo?.chucNang) {
                 const id = crypto.randomUUID();
@@ -497,15 +498,24 @@ export default function ContractCreatePage() {
                     <Form.Item name={['serviceDetails', 'webChiTiet', 'dot1']} label="ĐỢT 1" labelCol={{ span: 24 }}>
                         <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(value) => value?.replace(/[^\d]/g, '') as any} />
                     </Form.Item>
+                    <Form.Item name={['serviceDetails', 'webDates', 'dot1']} label="NGÀY ĐỢT 1" labelCol={{ span: 24 }} style={{ marginTop: -8 }}>
+                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày nộp" />
+                    </Form.Item>
                 </Col>
                 <Col xs={24} md={12} xl={8}>
                     <Form.Item name={['serviceDetails', 'webChiTiet', 'dot2']} label="ĐỢT 2" labelCol={{ span: 24 }}>
                         <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(value) => value?.replace(/[^\d]/g, '') as any} />
                     </Form.Item>
+                    <Form.Item name={['serviceDetails', 'webDates', 'dot2']} label="NGÀY ĐỢT 2" labelCol={{ span: 24 }} style={{ marginTop: -8 }}>
+                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày nộp" />
+                    </Form.Item>
                 </Col>
                 <Col xs={24} md={12} xl={8}>
                     <Form.Item name={['serviceDetails', 'webChiTiet', 'banGiao']} label="BÀN GIAO" labelCol={{ span: 24 }}>
                         <InputNumber style={{ width: '100%' }} placeholder="0" formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, '.')} parser={(value) => value?.replace(/[^\d]/g, '') as any} />
+                    </Form.Item>
+                    <Form.Item name={['serviceDetails', 'webDates', 'banGiao']} label="NGÀY BÀN GIAO" labelCol={{ span: 24 }} style={{ marginTop: -8 }}>
+                        <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" placeholder="Chọn ngày nộp" />
                     </Form.Item>
                 </Col>
             </Row>
