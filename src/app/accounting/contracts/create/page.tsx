@@ -3,7 +3,7 @@
 import React, { use, useState } from 'react';
 import { Form, Input, Select, Button, DatePicker, Row, Col, Tabs, Typography, Switch, message, ConfigProvider, Space, InputNumber, App } from 'antd';
 import { useRouter } from 'next/navigation';
-import { contractApi, customerApi } from '@/utils/api';
+import { contractApi, customerApi, employeeApi } from '@/utils/api';
 import dayjs from 'dayjs';
 
 const { Title, Text } = Typography;
@@ -25,6 +25,7 @@ export default function ContractCreatePage() {
             if (customer) {
                 const updates: any = {
                     tenKhachHang: customer.fullName || "",
+                    soDienThoai: phone, // Sửa: gán phone vào form field
                     daiDien: customer.representative || "",
                     maSoThue: customer.taxCode || "",
                     email: customer.email || "",
@@ -44,6 +45,40 @@ export default function ContractCreatePage() {
             console.log('Khách hàng mới');
         }
     };
+
+    const handleEmployeeBlur = async (index: number, code: string) => {
+        if (!code) return;
+        try {
+            const emp = await employeeApi.getByCode(code);
+            if (emp) {
+                const currentEmployees = form.getFieldValue('employees') || [];
+
+                // cập nhật thông tin cho nhân viên theo dòng
+                currentEmployees[index] = {
+                    ...currentEmployees[index],
+                    employeeCode: emp.employeeCode,
+                    displayEmpName: emp.fullName,
+                    displayDept: emp.deptManager?.fullName || emp.roleCode || "",
+                    displayRegion: emp.employeeRegions?.[0]?.region?.code || ""
+                };
+
+                // set lại giá trị cho form
+                const formUpdate: any = { employees: [...currentEmployees] };
+
+                // Nếu là nhân viên chính (index 0), map regionCode/deptManagerId/managerId lên contract
+                if (index === 0) {
+                    formUpdate.regionCode = emp.employeeRegions?.[0]?.regionCode || null;
+                    formUpdate.topDeptManager = emp.deptManagerId || null;
+                    formUpdate.topRegionManager = emp.managerId || null;
+                }
+
+                form.setFieldsValue(formUpdate);
+                message.success(`Đã tự động lấy thông tin nhân viên: ${emp.fullName}`);
+            }
+        } catch (error) {
+            console.log('Không tìm thấy mã nhân viên');
+        }
+    }
 
     const handleValuesChange = (changedValues: any, allValues: any) => {
         if (changedValues?.serviceDetails?.web) {
@@ -114,16 +149,17 @@ export default function ContractCreatePage() {
             const mapHostingInfo = (info: any) => info ? { duration: info.thoiGian, storage: info.dungLuong } : null;
             const mapDomainInfo = (info: any) => info ? { domainName: info.diaChiTenMien, provider: info.donViDangKy, expiryDate: info.ngayHetHan ? info.ngayHetHan.toISOString() : null } : null;
 
-            if (formattedServiceDetails.web?.giaHopDong || formattedServiceDetails.webInfo?.chucNang) {
+            if (formattedServiceDetails.web?.giaHopDong || formattedServiceDetails.web?.giaWeb || formattedServiceDetails.webInfo?.chucNang || values.features) {
                 const id = crypto.randomUUID();
+                const webPrice = formattedServiceDetails.web?.giaHopDong || formattedServiceDetails.web?.giaWeb || 0;
                 services.push({
                     id,
                     type: 'WEB',
                     name: 'Thiết kế web',
-                    price: formattedServiceDetails.web?.giaHopDong || 0,
+                    price: webPrice,
                     vatRate: formattedServiceDetails.web?.vatRate || 0,
-                    totalAmount: formattedServiceDetails.web?.tongThanhToan || formattedServiceDetails.web?.tongGiaTri || formattedServiceDetails.web?.giaHopDong || 0,
-                    webInfo: mapWebInfo(formattedServiceDetails.webInfo)
+                    totalAmount: formattedServiceDetails.web?.tongThanhToan || formattedServiceDetails.web?.tongGiaTri || webPrice || 0,
+                    webInfo: mapWebInfo(formattedServiceDetails.webInfo) || (values.features ? { chucNang: values.features } : null)
                 });
                 const dot1Amount = formattedServiceDetails.webChiTiet?.dot1 || 0;
                 if (dot1Amount > 0) receipts.push({ name: 'Lần 1', amount: dot1Amount, serviceId: id, order: paymentOrder++, paidDate: null });
@@ -149,13 +185,16 @@ export default function ContractCreatePage() {
                 const banGiaoAmount = formattedServiceDetails.webUpgrade?.banGiao || 0;
                 if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
-            if (formattedServiceDetails.hosting?.giaTriHopDong || formattedServiceDetails.hostingInfo) {
+            // Hosting: ưu tiên tab Hosting riêng, fallback lấy từ WebTab (HOST)
+            const hostingPrice = formattedServiceDetails.hosting?.giaTriHopDong || formattedServiceDetails.web?.host || 0;
+            const hostingVat = formattedServiceDetails.hosting?.vatAmount || 0;
+            if (hostingPrice > 0 || formattedServiceDetails.hostingInfo?.thoiGian || formattedServiceDetails.hostingInfo?.dungLuong) {
                 services.push({
                     type: 'HOSTING',
                     name: 'Hosting',
-                    price: formattedServiceDetails.hosting?.giaTriHopDong || 0,
-                    vatAmount: formattedServiceDetails.hosting?.vatAmount || 0,
-                    totalAmount: formattedServiceDetails.hosting?.hostVat || formattedServiceDetails.hosting?.giaTriHopDong || 0,
+                    price: hostingPrice,
+                    vatAmount: hostingVat,
+                    totalAmount: formattedServiceDetails.hosting?.hostVat || (hostingPrice + hostingVat),
                     hostingInfo: mapHostingInfo(formattedServiceDetails.hostingInfo)
                 });
             }
@@ -169,9 +208,10 @@ export default function ContractCreatePage() {
                     hostingInfo: mapHostingInfo(formattedServiceDetails.hostingUpgradeInfo)
                 });
             }
-            if (formattedServiceDetails.domain?.giaTriHopDong || formattedServiceDetails.domainInfo) {
-                const domainPrice = formattedServiceDetails.domain?.giaTriHopDong || 0;
-                const domainVat = formattedServiceDetails.domain?.vatAmount || 0;
+            // Domain: ưu tiên tab Domain riêng, fallback lấy từ WebTab (TÊN MIỀN)
+            const domainPrice = formattedServiceDetails.domain?.giaTriHopDong || formattedServiceDetails.web?.giaDomain || 0;
+            const domainVat = formattedServiceDetails.domain?.vatAmount || 0;
+            if (domainPrice > 0 || formattedServiceDetails.domainInfo?.diaChiTenMien) {
                 services.push({
                     type: 'DOMAIN',
                     name: 'Tên miền',
@@ -249,6 +289,7 @@ export default function ContractCreatePage() {
             }
 
             // Only send fields that exist in the Contracts Prisma schema
+            const webSd = formattedServiceDetails.web || {};
             const contractData: Record<string, any> = {
                 contractCode: values.contractCode,
                 title: values.contractCode ? `Hợp đồng ${values.contractCode}` : '',
@@ -259,11 +300,12 @@ export default function ContractCreatePage() {
                 submissionDate: values.submissionDate ? values.submissionDate.toISOString() : null,
                 features: values.features,
                 note: values.note,
-                totalAmount: values.totalAmount,
+                // Đọc từ WebTab — ô “Giá trị hợp đồng”, “Đã thu”, “Còn lại”
+                totalAmount: webSd.giaHopDong || webSd.tongThanhToan || webSd.tongGiaTri || values.totalAmount,
                 vatAmount: values.vatAmount,
-                vatRate: values.vatRate,
-                paidAmount: values.paidAmount,
-                remainingAmount: values.remainingAmount,
+                vatRate: webSd.vatRate || values.vatRate,
+                paidAmount: webSd.daThu ?? values.paidAmount,
+                remainingAmount: webSd.conLai ?? values.remainingAmount,
                 managerId: parseId(values.topRegionManager),
                 deptManagerId: parseId(values.topDeptManager),
                 seniorDeptManagerId: parseId(values.topSeniorManager),
@@ -299,6 +341,12 @@ export default function ContractCreatePage() {
 
     const OverviewTab = (
         <div style={{ padding: '24px', background: '#fff', minHeight: '400px' }}>
+            {/* Hidden fields to store data from auto-fill (index 0 employee) */}
+            <Form.Item name="regionCode" hidden><Input /></Form.Item>
+            <Form.Item name="topDeptManager" hidden><Input /></Form.Item>
+            <Form.Item name="topRegionManager" hidden><Input /></Form.Item>
+            <Form.Item name="topSeniorManager" hidden><Input /></Form.Item>
+
             <Row gutter={24}>
                 <Col xs={24} md={12} xl={4}>
                     <Form.Item name="contractCode" label="SỐ HỢP ĐỒNG">
@@ -345,8 +393,11 @@ export default function ContractCreatePage() {
                                 </div>
                                 <Row gutter={24}>
                                     <Col xs={24} md={12} xl={6}>
-                                        <Form.Item {...restField} name={[name, 'employeeCode']} label="MÃ NHÂN VIÊN ">
-                                            <Input placeholder="Mã NV" />
+                                        <Form.Item {...restField} name={[name, 'employeeCode']} label='MÃ NHÂN VIÊN'>
+                                            <Input
+                                                placeholder='Mã NV'
+                                                onBlur={(e) => handleEmployeeBlur(name, e.target.value)}
+                                            />
                                         </Form.Item>
                                     </Col>
                                     <Col xs={24} md={12} xl={6}>
@@ -620,7 +671,7 @@ export default function ContractCreatePage() {
             </Row>
             <Row gutter={24}>
                 <Col xs={24} md={12} xl={8}>
-                    <Form.Item name={['customerData', 'phone']} label='Số điện thoại'>
+                    <Form.Item name={['serviceDetails', 'customerInfo', 'soDienThoai']} label='SỐ ĐIỆN THOẠI' labelCol={{ span: 24 }}>
                         <Input onBlur={(e) => handlePhoneBlur(e.target.value)} />
                     </Form.Item>
                 </Col>
@@ -754,8 +805,8 @@ export default function ContractCreatePage() {
         { key: 'hosting', label: 'Hosting', children: HostingTab },
         { key: 'domain', label: 'Tên miền/ Mail server', children: DomainTab },
         { key: 'ads', label: 'Quảng cáo ads/ Facebook', children: AdsTab },
-        { key: 'customer', label: 'Thông tin khách hàng', children: CustomerTab },
-        { key: 'contract', label: 'Thông tin hợp đồng', children: ContractTab },
+        { key: 'customer', label: 'Thông tin khách hàng', children: CustomerTab, forceRender: true },
+        { key: 'contract', label: 'Thông tin hợp đồng', children: ContractTab, forceRender: true },
     ];
 
     return (

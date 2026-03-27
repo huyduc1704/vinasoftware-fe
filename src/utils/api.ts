@@ -197,6 +197,10 @@ export const employeeApi = {
         return fetchWithCredentials(`/employees/${id}`, { method: 'GET' });
     },
 
+    getByCode: async (code: string) => {
+        return fetchWithCredentials(`/employees/code/${code}`, { method: 'GET' });
+    },
+
     updateEmployee: async (id: string, data: any) => {
         return fetchWithCredentials(`/employees/${id}`, {
             method: 'PATCH',

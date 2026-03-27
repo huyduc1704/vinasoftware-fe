@@ -118,10 +118,12 @@ export default function ContractDetailPage() {
                                     sd.web = {
                                         ...sd.web,
                                         giaWeb: numericPrice !== undefined ? numericPrice : numericTotal,
-                                        giaHopDong: numericPrice !== undefined ? numericPrice : numericTotal,
+                                        giaHopDong: Number(data.totalAmount) || numericTotal,
                                         vatRate: numericVatRate,
-                                        tongThanhToan: data.totalAmount || numericTotal,
-                                        tongGiaTri: data.totalAmount || numericTotal,
+                                        tongThanhToan: Number(data.totalAmount) || numericTotal,
+                                        tongGiaTri: Number(data.totalAmount) || numericTotal,
+                                        daThu: Number(data.paidAmount) || 0,
+                                        conLai: Number(data.remainingAmount) || 0,
                                         ...s.webInfo
                                     };
                                     sd.webInfo = { chucNang: s.webInfo?.chucNang };
@@ -263,64 +265,117 @@ export default function ContractDetailPage() {
     }, [pageLoading, formValues, managers]);
 
 
+    const handleEmployeeBlur = async (isMain: boolean, code: string) => {
+        if (!code) return;
+        try {
+            const emp = await employeeApi.getByCode(code);
+            if (emp) {
+                const updates: any = {};
+                if (isMain) {
+                    updates.displayEmpName = emp.fullName;
+                    updates.displayDept = emp.deptManager?.fullName || emp.roleCode || "";
+                    updates.displayRegion = emp.employeeRegions?.[0]?.region?.code || "";
+                    updates.topRegionManager = emp.managerId || null;
+                    updates.topDeptManager = emp.deptManagerId || null;
+                    updates.topSeniorManager = emp.seniorDeptManagerId || null;
+                } else {
+                    updates.displayEmpName2 = emp.fullName;
+                    updates.displayDept2 = emp.deptManager?.fullName || emp.roleCode || "";
+                    updates.displayRegion2 = emp.employeeRegions?.[0]?.region?.code || "";
+                }
+                form.setFieldsValue(updates);
+                message.success(`Đã tự động lấy thông tin nhân viên: ${emp.fullName}`);
+            }
+        } catch (error) {
+            console.log('Không tìm thấy mã nhân viên');
+        }
+    };
 
     const handleValuesChange = (changedValues: any, allValues: any) => {
         const sd = allValues?.serviceDetails || {};
-        const web = changedValues?.serviceDetails?.web;
         const webChiTiet = changedValues?.serviceDetails?.webChiTiet;
 
-        if (web || webChiTiet) {
-            let updates: any = {};
+        // Chỉ auto-calc ĐÃ THU và CÒN LẠI từ các đợt nộp
+        if (webChiTiet) {
             const currentWeb = sd.web || {};
             const currentChiTiet = sd.webChiTiet || {};
 
-            // 1. Tự động tính Đã thu từ các đợt nộp
-            if (webChiTiet) {
-                const dot1 = Number(currentChiTiet.dot1 || 0);
-                const dot2 = Number(currentChiTiet.dot2 || 0);
-                const banGiao = Number(currentChiTiet.banGiao || 0);
-                updates.daThu = dot1 + dot2 + banGiao;
-            }
+            const dot1 = Number(currentChiTiet.dot1 || 0);
+            const dot2 = Number(currentChiTiet.dot2 || 0);
+            const banGiao = Number(currentChiTiet.banGiao || 0);
+            const daThu = dot1 + dot2 + banGiao;
 
-            // 2. Tự động tính Tổng giá trị từ các thành phần lẻ
-            if (web?.giaWeb !== undefined || web?.host !== undefined || web?.giaDomain !== undefined) {
-                const giaWeb = Number(currentWeb.giaWeb || 0);
-                const host = Number(currentWeb.host || 0);
-                const giaDomain = Number(currentWeb.giaDomain || 0);
-                updates.tongGiaTri = giaWeb + host + giaDomain;
-                updates.giaHopDong = updates.tongGiaTri;
-            }
+            const tongThanhToan = Number(currentWeb.tongThanhToan || 0);
+            const conLai = Math.max(0, tongThanhToan - daThu);
 
-            // 3. Tính Tổng thanh toán (bao gồm VAT)
-            const tongGiaTri = Number(updates.tongGiaTri !== undefined ? updates.tongGiaTri : currentWeb.tongGiaTri || 0);
-            const vatRate = Number(currentWeb.vatRate || 0);
-            const vatAmount = vatRate <= 100 ? tongGiaTri * vatRate / 100 : vatRate;
-            const tongThanhToan = tongGiaTri + vatAmount;
-
-            if (web?.tongGiaTri !== undefined || web?.vatRate !== undefined || updates.tongGiaTri !== undefined) {
-                updates.tongThanhToan = tongThanhToan;
-            }
-
-            // 4. Tính Còn lại = Tổng thanh toán - Đã thu
-            const daThu = Number(updates.daThu !== undefined ? updates.daThu : currentWeb.daThu || 0);
-            if (web?.daThu !== undefined || webChiTiet || updates.daThu !== undefined || updates.tongThanhToan !== undefined) {
-                updates.conLai = Math.max(0, tongThanhToan - daThu);
-            }
-
-            if (Object.keys(updates).length > 0) {
-                form.setFieldsValue({ serviceDetails: { web: { ...currentWeb, ...updates } } });
-            }
+            form.setFieldsValue({
+                serviceDetails: {
+                    web: { ...currentWeb, daThu, conLai }
+                }
+            });
         }
     };
+
+    // const handleValuesChange = (changedValues: any, allValues: any) => {
+    //     const sd = allValues?.serviceDetails || {};
+    //     const web = changedValues?.serviceDetails?.web;
+    //     const webChiTiet = changedValues?.serviceDetails?.webChiTiet;
+
+    //     if (web || webChiTiet) {
+    //         let updates: any = {};
+    //         const currentWeb = sd.web || {};
+    //         const currentChiTiet = sd.webChiTiet || {};
+
+    //         // 1. Tự động tính Đã thu từ các đợt nộp
+    //         if (webChiTiet) {
+    //             const dot1 = Number(currentChiTiet.dot1 || 0);
+    //             const dot2 = Number(currentChiTiet.dot2 || 0);
+    //             const banGiao = Number(currentChiTiet.banGiao || 0);
+    //             updates.daThu = dot1 + dot2 + banGiao;
+    //         }
+
+    //         // 2. Tự động tính Tổng giá trị từ các thành phần lẻ
+    //         if (web?.giaWeb !== undefined || web?.host !== undefined || web?.giaDomain !== undefined) {
+    //             const giaWeb = Number(currentWeb.giaWeb || 0);
+    //             const host = Number(currentWeb.host || 0);
+    //             const giaDomain = Number(currentWeb.giaDomain || 0);
+    //             updates.tongGiaTri = giaWeb + host + giaDomain;
+    //             updates.giaHopDong = updates.tongGiaTri;
+    //         }
+
+    //         // 3. Tính Tổng thanh toán (bao gồm VAT)
+    //         const tongGiaTri = Number(updates.tongGiaTri !== undefined ? updates.tongGiaTri : currentWeb.tongGiaTri || 0);
+    //         const vatRate = Number(currentWeb.vatRate || 0);
+    //         const vatAmount = vatRate <= 100 ? tongGiaTri * vatRate / 100 : vatRate;
+    //         const tongThanhToan = tongGiaTri + vatAmount;
+
+    //         if (web?.tongGiaTri !== undefined || web?.vatRate !== undefined || updates.tongGiaTri !== undefined) {
+    //             updates.tongThanhToan = tongThanhToan;
+    //         }
+
+    //         // 4. Tính Còn lại = Tổng thanh toán - Đã thu
+    //         const daThu = Number(updates.daThu !== undefined ? updates.daThu : currentWeb.daThu || 0);
+    //         if (web?.daThu !== undefined || webChiTiet || updates.daThu !== undefined || updates.tongThanhToan !== undefined) {
+    //             updates.conLai = Math.max(0, tongThanhToan - daThu);
+    //         }
+
+    //         if (Object.keys(updates).length > 0) {
+    //             form.setFieldsValue({ serviceDetails: { web: { ...currentWeb, ...updates } } });
+    //         }
+    //     }
+    // };
 
     const onFinish = async (values: any) => {
         try {
             setLoading(true);
             const sd = values.serviceDetails || {};
 
-            // Extract customerInfo — if CustomerTab wasn't visited (lazy render), form won't have
-            // these values, so fall back to the loaded DB values in formValues
-            const customerInfo = sd.customerInfo || formValues?.serviceDetails?.customerInfo;
+            // Merge customerInfo — always use existing data as base so we don't wipe fields
+            // that weren't rendered or changed in the CustomerTab.
+            const customerInfo = {
+                ...(formValues?.serviceDetails?.customerInfo || {}),
+                ...(sd.customerInfo || {})
+            };
             const { customerInfo: _ci, ...serviceDetailsToSave } = sd;
 
             // Helper: remove empty objects/nulls from serviceDetails to avoid wiping real data
@@ -383,7 +438,7 @@ export default function ContractDetailPage() {
                     price: webPrice,
                     vatRate: vatRate,
                     totalAmount: Math.round(webPrice * factor),
-                    webInfo: mapWebInfo(mergedServiceDetails.webInfo)
+                    webInfo: mapWebInfo(mergedServiceDetails.webInfo) || (values.features ? { chucNang: values.features } : null)
                 });
 
                 // Tách HOST nếu có trong tab Web
@@ -440,7 +495,8 @@ export default function ContractDetailPage() {
                 const banGiaoAmount = mergedServiceDetails.webUpgrade?.banGiao || 0;
                 if (banGiaoAmount > 0) receipts.push({ name: 'Bàn giao', amount: banGiaoAmount, serviceId: id, order: paymentOrder++, paidDate: null });
             }
-            if (mergedServiceDetails.hosting?.giaTriHopDong || mergedServiceDetails.hostingInfo) {
+            // Hosting riêng: chỉ tạo nếu WebTab KHÔNG có giá trị host (tránh duplicate)
+            if (!mergedServiceDetails.web?.host && (mergedServiceDetails.hosting?.giaTriHopDong || mergedServiceDetails.hostingInfo)) {
                 services.push({
                     type: 'HOSTING',
                     name: 'Hosting',
@@ -460,7 +516,8 @@ export default function ContractDetailPage() {
                     hostingInfo: mapHostingInfo(mergedServiceDetails.hostingUpgradeInfo)
                 });
             }
-            if (mergedServiceDetails.domain?.giaTriHopDong || mergedServiceDetails.domainInfo) {
+            // Domain riêng: chỉ tạo nếu WebTab KHÔNG có giá trị giaDomain (tránh duplicate)
+            if (!mergedServiceDetails.web?.giaDomain && (mergedServiceDetails.domain?.giaTriHopDong || mergedServiceDetails.domainInfo)) {
                 const domainPrice = mergedServiceDetails.domain?.giaTriHopDong || 0;
                 const domainVat = mergedServiceDetails.domain?.vatAmount || 0;
                 services.push({
@@ -617,6 +674,11 @@ export default function ContractDetailPage() {
 
     const OverviewTab = (
         <div style={{ padding: '24px', background: '#fff', minHeight: '400px' }}>
+            {/* Hidden fields for manager IDs */}
+            <Form.Item name="topRegionManager" hidden><Input /></Form.Item>
+            <Form.Item name="topDeptManager" hidden><Input /></Form.Item>
+            <Form.Item name="topSeniorManager" hidden><Input /></Form.Item>
+
             <Row gutter={24}>
                 <Col xs={24} md={12} xl={4}><Form.Item name="contractCode" label="SỐ HỢP ĐỒNG"><Input placeholder="Nhập số hợp đồng" /></Form.Item></Col>
                 <Col xs={24} md={12} xl={4}>
@@ -634,7 +696,11 @@ export default function ContractDetailPage() {
                 <Col xs={24} md={12} xl={6}><Form.Item name="receiptCode" label="SỐ PHIẾU THU"><Input placeholder="Nhập số phiếu thu" /></Form.Item></Col>
             </Row>
             <Row gutter={24} style={{ marginTop: '16px' }}>
-                <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpCode" label={isShared ? "MÃ NV 1" : "MÃ NHÂN VIÊN"}><Input placeholder="Mã NV" /></Form.Item></Col>
+                <Col xs={24} md={12} xl={6}>
+                    <Form.Item name="displayEmpCode" label={isShared ? "MÃ NV 1" : "MÃ NHÂN VIÊN"}>
+                        <Input placeholder="Mã NV" onBlur={(e) => handleEmployeeBlur(true, e.target.value)} />
+                    </Form.Item>
+                </Col>
                 <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpName" label={isShared ? "TÊN NVKD 1" : "TÊN NVKD"}><Input placeholder="Tên NVKD" /></Form.Item></Col>
                 <Col xs={24} md={12} xl={6}><Form.Item name="displayDept" label={isShared ? "PHÒNG" : "PHÒNG"}><Input placeholder="Phòng" /></Form.Item></Col>
                 <Col xs={24} md={12} xl={6}><Form.Item name="displayRegion" label="KHU VỰC"><Input placeholder="Khu vực" /></Form.Item></Col>
@@ -642,7 +708,11 @@ export default function ContractDetailPage() {
 
             {isShared && (
                 <Row gutter={24} style={{ marginTop: '16px' }}>
-                    <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpCode2" label="MÃ NV 2 (SHARE)"><Input placeholder="Mã NV 2" /></Form.Item></Col>
+                    <Col xs={24} md={12} xl={6}>
+                        <Form.Item name="displayEmpCode2" label="MÃ NV 2 (SHARE)">
+                            <Input placeholder="Mã NV 2" onBlur={(e) => handleEmployeeBlur(false, e.target.value)} />
+                        </Form.Item>
+                    </Col>
                     <Col xs={24} md={12} xl={6}><Form.Item name="displayEmpName2" label="TÊN NVKD 2 (SHARE)"><Input placeholder="Tên NVKD 2" /></Form.Item></Col>
                     <Col xs={24} md={12} xl={6}><Form.Item name="displayDept2" label="PHÒNG"><Input placeholder="Phòng" /></Form.Item></Col>
                     <Col xs={24} md={12} xl={6}><Form.Item name="displayRegion2" label="KHU VỰC 2"><Input placeholder="Khu vực 2" /></Form.Item></Col>
@@ -946,8 +1016,8 @@ export default function ContractDetailPage() {
         { key: 'hosting', label: 'Hosting', children: HostingTab },
         { key: 'domain', label: 'Tên miền / Mail server', children: DomainTab },
         { key: 'ads', label: 'Quảng cáo Ads / Facebook', children: AdsTab },
-        { key: 'customer', label: 'Thông tin khách hàng', children: CustomerTab },
-        { key: 'contract', label: 'Thông tin hợp đồng', children: ContractTab },
+        { key: 'customer', label: 'Thông tin khách hàng', children: CustomerTab, forceRender: true },
+        { key: 'contract', label: 'Thông tin hợp đồng', children: ContractTab, forceRender: true },
     ];
 
     if (pageLoading) {
