@@ -47,50 +47,29 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                 }).catch(() => { setRegions([]); return []; })
             );
 
-            if (['TRUONG_PHONG_CAP_CAO', 'TRUONG_PHONG', 'QUAN_LY', 'NVKD'].includes(currentRoleCode || '')) {
+            // Fetch all potentially relevant manager lists to ensure labels are resolved
+            // and dropdowns are ready if the user changes the employee's role.
+            const managerRoles = [
+                { role: 'TRUONG_KHU_VUC', setter: setAreaManagers },
+                { role: 'TRUONG_PHONG_CAP_CAO', setter: setSeniorManagers },
+                { role: 'TRUONG_PHONG', setter: setDeptManagers },
+                { role: 'QUAN_LY', setter: setManagers }
+            ];
+
+            managerRoles.forEach(({ role, setter }) => {
                 fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_KHU_VUC', limit: 1000 })
+                    employeeApi.getEmployees({ roleCode: role, limit: 1000 })
                         .then(data => {
                             const items = parseEmployees(data);
-                            setAreaManagers(items);
+                            setter(items);
                             return items;
                         })
-                        .catch(() => [])
-                );
-            }
-            if (['TRUONG_PHONG', 'QUAN_LY', 'NVKD'].includes(currentRoleCode || '')) {
-                fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG_CAP_CAO', limit: 1000 })
-                        .then(data => {
-                            const items = parseEmployees(data);
-                            setSeniorManagers(items);
-                            return items;
+                        .catch(() => {
+                            setter([]);
+                            return [];
                         })
-                        .catch(() => [])
                 );
-            }
-            if (['QUAN_LY', 'NVKD'].includes(currentRoleCode || '')) {
-                fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'TRUONG_PHONG', limit: 1000 })
-                        .then(data => {
-                            const items = parseEmployees(data);
-                            setDeptManagers(items);
-                            return items;
-                        })
-                        .catch(() => [])
-                );
-            }
-            if (['NVKD'].includes(currentRoleCode || '')) {
-                fetchPromises.push(
-                    employeeApi.getEmployees({ roleCode: 'QUAN_LY', limit: 1000 })
-                        .then(data => {
-                            const items = parseEmployees(data);
-                            setManagers(items);
-                            return items;
-                        })
-                        .catch(() => [])
-                );
-            }
+            });
 
             fetchPromises.push(
                 roleApi.getRoles().then((data: any) => {
