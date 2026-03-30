@@ -16,6 +16,7 @@ interface EmployeeModalProps {
 export default function EmployeeModal({ open, onCancel, onOk, initialValues, title, currentRoleCode }: EmployeeModalProps) {
     const { message } = App.useApp();
     const [form] = Form.useForm();
+    const selectedRoleCode = Form.useWatch('roleCode', form);
     const [loading, setLoading] = useState(false);
 
     // Dropdown list states
@@ -307,9 +308,7 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                     </Col>
                 </Row>
 
-                <Form.Item hidden name="areaManagerId">
-                    <Input />
-                </Form.Item>
+                {/* Removed hidden areaManagerId */}
 
                 <Row gutter={16}>
                     <Col span={12}>
@@ -338,33 +337,50 @@ export default function EmployeeModal({ open, onCancel, onOk, initialValues, tit
                 </Row>
 
                 <Row gutter={16}>
-                    <Col span={8}>
-                        <Form.Item name="seniorDeptManagerId" label="Trưởng phòng cấp cao">
-                            <Select placeholder="Chọn Trưởng phòng cấp cao" allowClear>
-                                {seniorManagers.map((m: any) => (
-                                    <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item name="deptManagerId" label="Trưởng phòng">
-                            <Select placeholder="Chọn Trưởng phòng" allowClear>
-                                {deptManagers.map((m: any) => (
-                                    <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                        <Form.Item name="managerId" label="Quản lý trực tiếp">
-                            <Select placeholder="Chọn Quản lý" allowClear>
-                                {managers.map((m: any) => (
-                                    <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
-                                ))}
-                            </Select>
-                        </Form.Item>
-                    </Col>
+                    {['NVKD', 'QUAN_LY', 'TRUONG_PHONG', 'TRUONG_PHONG_CAP_CAO'].includes(selectedRoleCode || '') && (
+                        <Col span={selectedRoleCode === 'TRUONG_PHONG_CAP_CAO' ? 24 : 6}>
+                            <Form.Item name="areaManagerId" label="Trưởng khu vực">
+                                <Select placeholder="Chọn Trưởng khu vực" allowClear>
+                                    {areaManagers.map((m: any) => (
+                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    )}
+                    {['NVKD', 'QUAN_LY', 'TRUONG_PHONG'].includes(selectedRoleCode || '') && (
+                        <Col span={6}>
+                            <Form.Item name="seniorDeptManagerId" label="Trưởng phòng cấp cao">
+                                <Select placeholder="Chọn Trưởng phòng cấp cao" allowClear>
+                                    {seniorManagers.map((m: any) => (
+                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    )}
+                    {['NVKD', 'QUAN_LY'].includes(selectedRoleCode || '') && (
+                        <Col span={6}>
+                            <Form.Item name="deptManagerId" label="Trưởng phòng">
+                                <Select placeholder="Chọn Trưởng phòng" allowClear>
+                                    {deptManagers.map((m: any) => (
+                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    )}
+                    {['NVKD'].includes(selectedRoleCode || '') && (
+                        <Col span={6}>
+                            <Form.Item name="managerId" label="Quản lý trực tiếp">
+                                <Select placeholder="Chọn Quản lý" allowClear>
+                                    {managers.map((m: any) => (
+                                        <Select.Option key={m.id} value={m.id}>{m.fullName}</Select.Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    )}
                 </Row>
             </Form>
             </div>

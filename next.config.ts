@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
     const isProd = process.env.NODE_ENV === 'production';
     const apiUrl = process.env.BACKEND_API_URL || (isProd
       ? 'https://vinasoftware-be.onrender.com/api'
-      : 'http://localhost:8080/api');
+      : 'http://localhost:8081/api');
 
     return [
       {
